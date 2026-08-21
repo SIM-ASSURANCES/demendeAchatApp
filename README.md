@@ -40,6 +40,24 @@ Le design applique la charte graphique officielle SIM ASSURANCES (`DOC SIMAS/CHA
   et avatar ; barre latérale groupée par section (Demandes, Pilotage, Administration) avec icônes
   (`lucide-react`), état actif, et bouton de réduction — voir [PrivateLayout.tsx](frontend/src/components/PrivateLayout.tsx)
 
+## Écart avec le cahier des charges — RG-04 (double validation)
+
+Le CDC (§12) laissait la question ouverte et retenait par défaut qu'**une seule validation (RH ou
+DG) suffit** (RG-04). Sur demande explicite, l'application implémente désormais une **double
+validation obligatoire** : une demande ne devient « Validée » (verrouillée, comptabilisée) que
+lorsque le RH ET le DG ont chacun validé depuis leur espace. Entre les deux, elle passe par un
+statut intermédiaire `EN_ATTENTE_SECONDE_VALIDATION` :
+- chaque rôle ne peut valider qu'une fois (409 en cas de nouvelle tentative) ;
+- le rejet reste possible par l'un ou l'autre tant que la double validation n'est pas complète ;
+- le suivi budgétaire (RG-10) et le reporting (F-06) ne comptent la demande qu'une fois les deux
+  signatures obtenues (statut `VALIDEE`) ;
+- notifications dédiées (F-09) : le demandeur est informé dès la première validation, et le
+  second valideur reçoit un email ciblé l'invitant à se prononcer.
+
+**Le [Plan de développement](Plan_de_developpement_Demande_Achat_SIM_ASSURANCES.docx) livré
+mentionne encore l'ancienne règle (RG-04, validation unique) — il n'a pas été régénéré suite à ce
+changement.**
+
 ## État d'avancement (voir le plan de développement)
 
 Réalisé (Sprint 0/1, et parties des Sprints 2 à 7) :
@@ -47,7 +65,7 @@ Réalisé (Sprint 0/1, et parties des Sprints 2 à 7) :
 - Formulaire public de demande + suivi par lien (F-01, F-08, F-14, RG-01 à RG-03), avec sélection du
   poste budgétaire concerné (nécessaire au rattachement du suivi Budget/Réalisé/Disponible)
 - Espaces RH/DG : liste, filtres, détail (F-02, F-13)
-- Workflow : validation, rejet, signature électronique automatique, verrouillage (F-03, F-04, RG-04 à RG-09)
+- Workflow : validation, rejet, signature électronique automatique, verrouillage (F-03, F-04, RG-05 à RG-09)
 - Annulation sans suppression (F-05, RG-07)
 - Journal d'audit inaltérable (F-10, RG-12)
 - Administration de base : catégories, entités, comptes (F-11, F-12)

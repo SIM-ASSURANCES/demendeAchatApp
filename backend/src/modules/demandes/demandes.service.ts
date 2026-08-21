@@ -8,6 +8,8 @@ import {
   notifierAccuseReception,
   notifierNouvelleDemande,
   notifierChangementStatut,
+  notifierValidationPartielle,
+  notifierSecondeValidationRequise,
   notifierAlerteBudget,
 } from "../../lib/notifications";
 import { calculerUnBudgetAvecSuivi } from "../../lib/budgetCalcul";
@@ -233,14 +235,18 @@ export async function obtenirDetail(id: string) {
   return demande;
 }
 
-// RG-04, RG-05, F-03, F-04 : la validation par RH ou DG (l'un des deux suffit) rend la demande
-// définitive, appose la signature électronique automatique et verrouille la demande.
+// Double validation : RH ET DG doivent chacun valider, depuis leur espace, pour qu'une demande
+// devienne définitive. La signature électronique de chacun est apposée dès son propre passage ;
+// le verrouillage (F-04) et le montant réalisé (RG-10) n'interviennent qu'une fois les deux obtenues.
 export async function validerDemande(
   demandeId: string,
   valideur: { id: string; nom: string; role: "RH" | "DG" },
   contexte: { ip?: string; sessionId?: string }
 ) {
-  const demande = await prisma.demandeAchat.findUnique({ where: { id: demandeId } });
+  const demande = await prisma.demandeAchat.findUnique({
+    where: { id: demandeId },
+    include: { signatures: true },
+  });
   if (!demande) throw new ApiError(404, "Demande introuvable.");
   if (demande.statut === StatutDemande.VALIDEE) {
     throw new ApiError(409, "Cette demande est déjà validée.");
@@ -248,13 +254,22 @@ export async function validerDemande(
   if (demande.statut === StatutDemande.ANNULEE) {
     throw new ApiError(409, "Cette demande est annulée.");
   }
+  if (demande.statut === StatutDemande.REJETEE) {
+    throw new ApiError(409, "Cette demande a été rejetée.");
+  }
+  if (demande.signatures.some((s) => s.role === valideur.role)) {
+    throw new ApiError(409, `Vous avez déjà validé cette demande en tant que ${valideur.role}.`);
+  }
+
+  const autreValidationDejaObtenue = demande.signatures.some((s) => s.role === "RH" || s.role === "DG");
+  const complete = autreValidationDejaObtenue;
+  const roleRestant = valideur.role === "RH" ? "DG" : "RH";
 
   const misAJour = await prisma.demandeAchat.update({
     where: { id: demandeId },
     data: {
-      statut: StatutDemande.VALIDEE,
-      valideLe: new Date(),
-      valideParId: valideur.id,
+      statut: complete ? StatutDemande.VALIDEE : StatutDemande.EN_ATTENTE_SECONDE_VALIDATION,
+      ...(complete ? { valideLe: new Date(), valideParId: valideur.id } : {}),
       signatures: {
         create: [
           {
@@ -272,17 +287,25 @@ export async function validerDemande(
 
   await consignerAudit({
     demandeId,
-    action: "DEMANDE_VALIDEE",
+    action: complete ? "DEMANDE_VALIDEE" : "DEMANDE_PREMIERE_VALIDATION",
     auteurId: valideur.id,
     auteurLibelle: valideur.nom,
-    detail: { role: valideur.role },
+    detail: { role: valideur.role, statutFinal: misAJour.statut },
   });
 
-  // F-09 : email au demandeur, puis alerte budgétaire (dépassement/quasi-dépassement) si applicable.
-  await notifierChangementStatut(misAJour, "VALIDEE", undefined, misAJour.lienSuiviToken);
-  if (misAJour.budgetId) {
-    const budgetSuivi = await calculerUnBudgetAvecSuivi(misAJour.budgetId);
-    if (budgetSuivi?.alerte) await notifierAlerteBudget(budgetSuivi);
+  // F-09 : email au demandeur, puis alerte budgétaire si la demande est désormais définitive ;
+  // sinon, notification à l'autre valideur pour qu'il se prononce à son tour.
+  if (complete) {
+    await notifierChangementStatut(misAJour, "VALIDEE", undefined, misAJour.lienSuiviToken);
+    if (misAJour.budgetId) {
+      const budgetSuivi = await calculerUnBudgetAvecSuivi(misAJour.budgetId);
+      if (budgetSuivi?.alerte) await notifierAlerteBudget(budgetSuivi);
+    }
+  } else {
+    await Promise.allSettled([
+      notifierValidationPartielle(misAJour, valideur.role, roleRestant, misAJour.lienSuiviToken),
+      notifierSecondeValidationRequise(misAJour, roleRestant),
+    ]);
   }
 
   return misAJour;
@@ -297,7 +320,7 @@ export async function rejeterDemande(
 ) {
   const demande = await prisma.demandeAchat.findUnique({ where: { id: demandeId } });
   if (!demande) throw new ApiError(404, "Demande introuvable.");
-  if (demande.statut !== StatutDemande.SOUMISE) {
+  if (demande.statut !== StatutDemande.SOUMISE && demande.statut !== StatutDemande.EN_ATTENTE_SECONDE_VALIDATION) {
     throw new ApiError(409, "Seule une demande en attente de validation peut être rejetée.");
   }
 

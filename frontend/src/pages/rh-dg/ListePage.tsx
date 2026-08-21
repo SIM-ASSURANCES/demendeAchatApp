@@ -20,6 +20,7 @@ interface DemandeListe {
 const STATUTS = [
   { value: "", label: "Tous les statuts" },
   { value: "SOUMISE", label: "En attente de validation" },
+  { value: "EN_ATTENTE_SECONDE_VALIDATION", label: "En attente de la seconde validation" },
   { value: "VALIDEE", label: "Validée" },
   { value: "REJETEE", label: "Rejetée" },
   { value: "ANNULEE", label: "Annulée" },

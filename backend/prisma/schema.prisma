@@ -17,6 +17,8 @@ enum Role {
 enum StatutDemande {
   SOUMISE
   REJETEE
+  // Double validation (RH ET DG) : l'un des deux a validé, en attente de la seconde signature.
+  EN_ATTENTE_SECONDE_VALIDATION
   VALIDEE
   ANNULEE
 }

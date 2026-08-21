@@ -96,6 +96,59 @@ export async function notifierChangementStatut(
   });
 }
 
+const LIBELLE_ROLE: Record<"RH" | "DG", string> = {
+  RH: "le Responsable Comptable Financier RH",
+  DG: "la Direction Générale",
+};
+
+// Double validation : email au demandeur dès l'obtention de la première des deux signatures.
+export async function notifierValidationPartielle(
+  demande: DemandeNotif,
+  roleValide: "RH" | "DG",
+  roleRestant: "RH" | "DG",
+  lienSuiviToken?: string
+): Promise<void> {
+  const lien = lienSuiviToken ? `${env.frontendUrl}/suivi/${lienSuiviToken}` : undefined;
+  await envoyerEmail({
+    to: demande.demandeurEmail,
+    subject: `Demande d'achat ${demande.numero} — première validation obtenue`,
+    html: gabaritEmail(
+      "Votre demande a franchi une première étape de validation",
+      `<p>Bonjour ${demande.demandeurNom},</p>
+       <p>Votre demande d'achat <strong>${demande.numero}</strong> a été validée par ${LIBELLE_ROLE[roleValide]}.</p>
+       <p>Elle attend désormais la validation de ${LIBELLE_ROLE[roleRestant]} pour devenir définitive.</p>`,
+      lien,
+      "Suivre ma demande"
+    ),
+  });
+}
+
+// Double validation : email au valideur dont la signature manque encore, dès que l'autre a validé.
+export async function notifierSecondeValidationRequise(demande: DemandeNotif, roleRestant: "RH" | "DG"): Promise<void> {
+  const utilisateurs = await prisma.utilisateur.findMany({
+    where: { role: roleRestant, actif: true, email: { not: null } },
+    select: { nom: true, email: true },
+  });
+  const destinataires = utilisateurs.filter((u): u is { nom: string; email: string } => !!u.email);
+  if (destinataires.length === 0) return;
+
+  const lienEspace = `${env.frontendUrl}/espace/demandes`;
+  await envoyerEmails(
+    destinataires.map((d) => ({
+      to: d.email,
+      subject: `Votre validation est encore nécessaire — ${demande.numero}`,
+      html: gabaritEmail(
+        "Une demande attend votre validation pour devenir définitive",
+        `<p>Bonjour ${d.nom},</p>
+         <p>La demande <strong>${demande.numero}</strong> (${demande.demandeurNom}, ${FORMAT_MONTANT.format(Number(demande.montantTotal))} ${demande.devise})
+         a déjà reçu une première validation et attend désormais la vôtre pour devenir définitive.</p>`,
+        lienEspace,
+        "Traiter la demande"
+      ),
+    }))
+  );
+}
+
 // F-09 : alerte spécifique en cas de dépassement ou de quasi-dépassement d'un poste budgétaire.
 export async function notifierAlerteBudget(budget: BudgetAvecSuivi): Promise<void> {
   if (!budget.alerte) return;

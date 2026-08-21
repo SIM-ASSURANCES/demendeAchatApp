@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, messageErreur } from "../../lib/api";
 import { StatutBadge } from "../../components/StatutBadge";
 import { ouvrirPdfAuthentifie } from "../../lib/ouvrirFichier";
+import { useAuth } from "../../lib/auth";
 
 interface Detail {
   id: string;
@@ -28,6 +29,7 @@ export function DetailPage() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { utilisateur } = useAuth();
   const [motifRejet, setMotifRejet] = useState("");
   const [afficherRejet, setAfficherRejet] = useState(false);
   const [motifAnnulation, setMotifAnnulation] = useState("");
@@ -155,48 +157,86 @@ export function DetailPage() {
         </div>
       </section>
 
-      {demande.statut === "SOUMISE" && (
-        <section className="rounded-lg border border-[#004B9C]/20 bg-white p-5 space-y-4">
-          <h2 className="font-semibold text-gray-800">Actions</h2>
-          <div className="flex flex-wrap gap-3">
-            <button
-              onClick={() => valider.mutate()}
-              disabled={valider.isPending}
-              className="rounded bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60"
-            >
-              Valider
-            </button>
-            <button
-              onClick={() => setAfficherRejet((v) => !v)}
-              className="rounded border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50"
-            >
-              Rejeter
-            </button>
-          </div>
+      {(() => {
+        const enCoursDeValidation = demande.statut === "SOUMISE" || demande.statut === "EN_ATTENTE_SECONDE_VALIDATION";
+        const monRole = utilisateur?.role;
+        const dejaValideParMoi =
+          (monRole === "RH" || monRole === "DG") && demande.signatures.some((s) => s.role === monRole);
 
-          {valider.isError && <p className="text-sm text-red-600">{messageErreur(valider.error)}</p>}
+        if (!enCoursDeValidation) return null;
 
-          {afficherRejet && (
-            <div className="space-y-2 rounded border border-red-200 bg-red-50 p-3">
-              <textarea
-                className="champ"
-                rows={2}
-                placeholder="Motif du rejet (obligatoire)"
-                value={motifRejet}
-                onChange={(e) => setMotifRejet(e.target.value)}
-              />
-              {rejeter.isError && <p className="text-sm text-red-600">{messageErreur(rejeter.error)}</p>}
+        if (monRole !== "RH" && monRole !== "DG") {
+          return (
+            <section className="rounded-lg border bg-white p-5">
+              <p className="text-sm text-gray-600">
+                Seuls les comptes RH et DG peuvent valider ou rejeter une demande.
+              </p>
+            </section>
+          );
+        }
+
+        if (dejaValideParMoi) {
+          const autreRole = monRole === "RH" ? "DG" : "RH";
+          return (
+            <section className="rounded-lg border border-sky-200 bg-sky-50 p-5">
+              <p className="text-sm text-sky-900">
+                Vous avez déjà validé cette demande en tant que {monRole}. Elle attend maintenant la validation
+                de {autreRole === "DG" ? "la Direction Générale" : "le Responsable Comptable Financier RH"} pour
+                devenir définitive.
+              </p>
+            </section>
+          );
+        }
+
+        return (
+          <section className="rounded-lg border border-[#004B9C]/20 bg-white p-5 space-y-4">
+            <h2 className="font-semibold text-gray-800">Actions</h2>
+            {demande.statut === "EN_ATTENTE_SECONDE_VALIDATION" && (
+              <p className="text-sm text-sky-800">
+                La double validation (RH et DG) est requise : une première validation a déjà été obtenue,
+                la vôtre rendra cette demande définitive.
+              </p>
+            )}
+            <div className="flex flex-wrap gap-3">
               <button
-                onClick={() => rejeter.mutate()}
-                disabled={!motifRejet.trim() || rejeter.isPending}
-                className="rounded bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60"
+                onClick={() => valider.mutate()}
+                disabled={valider.isPending}
+                className="rounded bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60"
               >
-                Confirmer le rejet
+                Valider
+              </button>
+              <button
+                onClick={() => setAfficherRejet((v) => !v)}
+                className="rounded border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50"
+              >
+                Rejeter
               </button>
             </div>
-          )}
-        </section>
-      )}
+
+            {valider.isError && <p className="text-sm text-red-600">{messageErreur(valider.error)}</p>}
+
+            {afficherRejet && (
+              <div className="space-y-2 rounded border border-red-200 bg-red-50 p-3">
+                <textarea
+                  className="champ"
+                  rows={2}
+                  placeholder="Motif du rejet (obligatoire)"
+                  value={motifRejet}
+                  onChange={(e) => setMotifRejet(e.target.value)}
+                />
+                {rejeter.isError && <p className="text-sm text-red-600">{messageErreur(rejeter.error)}</p>}
+                <button
+                  onClick={() => rejeter.mutate()}
+                  disabled={!motifRejet.trim() || rejeter.isPending}
+                  className="rounded bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60"
+                >
+                  Confirmer le rejet
+                </button>
+              </div>
+            )}
+          </section>
+        );
+      })()}
 
       {demande.statut === "VALIDEE" && (
         <section className="rounded-lg border bg-white p-5 space-y-4">

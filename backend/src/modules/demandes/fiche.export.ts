@@ -36,6 +36,7 @@ interface DemandeFiche {
 
 const LABEL_STATUT: Record<string, string> = {
   SOUMISE: "En attente de validation",
+  EN_ATTENTE_SECONDE_VALIDATION: "En attente de la seconde validation",
   REJETEE: "Rejetée",
   VALIDEE: "Validée",
   ANNULEE: "Annulée",
