@@ -80,6 +80,51 @@ demandesRouter.post("/", soumissionLimiter, async (req, res, next) => {
   }
 });
 
+// --- F-08 : retrouver son lien de suivi à partir du numéro de demande ---------------------------
+
+// Les numéros de demande sont séquentiels (DA-2026-00001, 00002…) et donc devinables : l'email du
+// demandeur est exigé en complément, comme preuve de propriété, pour empêcher qu'un tiers consulte
+// les coordonnées et montants d'une demande en devinant simplement son numéro. Fortement limité en
+// débit pour dissuader toute tentative d'énumération des combinaisons numéro/email.
+const rechercheLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Trop de tentatives. Réessayez plus tard." },
+});
+
+const rechercheSchema = z.object({
+  numero: z.string().min(1),
+  email: z.string().email(),
+});
+
+demandesRouter.get("/rechercher", rechercheLimiter, async (req, res, next) => {
+  try {
+    const parsed = rechercheSchema.safeParse(req.query);
+    if (!parsed.success) {
+      return res.status(400).json({ message: "Numéro de demande et email requis." });
+    }
+
+    const demande = await prisma.demandeAchat.findUnique({
+      where: { numero: parsed.data.numero.trim().toUpperCase() },
+      select: { demandeurEmail: true, lienSuiviToken: true },
+    });
+
+    const correspond =
+      demande && demande.demandeurEmail.toLowerCase() === parsed.data.email.trim().toLowerCase();
+
+    if (!correspond) {
+      // Message générique : ne pas indiquer si c'est le numéro ou l'email qui ne correspond pas.
+      return res.status(404).json({ message: "Aucune demande ne correspond à ce numéro et cet email." });
+    }
+
+    res.json({ lienSuiviToken: demande.lienSuiviToken });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // --- F-08 : suivi de la demande par le demandeur, via son lien personnel ------------------------
 
 demandesRouter.get("/suivi/:token", async (req, res, next) => {

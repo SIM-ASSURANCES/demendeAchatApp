@@ -68,7 +68,10 @@ changement.**
 
 Réalisé (Sprint 0/1, et parties des Sprints 2 à 7) :
 - Authentification RH/DG/Admin, RBAC (F-02, F-12)
-- Formulaire public de demande + suivi par lien (F-01, F-08, F-14, RG-01 à RG-03), avec sélection du
+- Formulaire public de demande + suivi par lien ou par numéro de demande (F-01, F-08, F-14,
+  RG-01 à RG-03) — la recherche par numéro exige aussi l'email du demandeur (`GET
+  /api/demandes/rechercher`, limité à 10 tentatives / 15 min) car les numéros sont séquentiels et
+  donc devinables ; avec sélection du
   poste budgétaire concerné (nécessaire au rattachement du suivi Budget/Réalisé/Disponible)
 - Espaces RH/DG : liste, filtres, détail (F-02, F-13)
 - Workflow : validation, rejet, signature électronique automatique, verrouillage (F-03, F-04, RG-05 à RG-09)
