@@ -46,6 +46,7 @@ export function DetailPage() {
   function invalider() {
     queryClient.invalidateQueries({ queryKey: ["demande", id] });
     queryClient.invalidateQueries({ queryKey: ["demandes"] });
+    queryClient.invalidateQueries({ queryKey: ["notifications-compteur"] });
   }
 
   const valider = useMutation({

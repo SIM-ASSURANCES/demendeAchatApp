@@ -66,6 +66,7 @@ export function BudgetsPage() {
 
   function invalider() {
     queryClient.invalidateQueries({ queryKey: ["budgets"] });
+    queryClient.invalidateQueries({ queryKey: ["notifications-compteur"] });
   }
 
   const valider = useMutation({

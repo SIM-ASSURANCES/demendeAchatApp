@@ -114,6 +114,14 @@ Réalisé (Sprint 0/1, et parties des Sprints 2 à 7) :
   automatique en XOF (`montantTotalXOF`, devise de référence) pour le suivi budgétaire (RG-10) et le
   reporting (F-06), qui ne peuvent additionner des montants de devises différentes ; la fiche
   officielle (F-07) affiche le montant dans sa devise d'origine avec l'équivalent XOF en note
+- **Compteur de notifications** : la cloche de l'en-tête privé affiche désormais un badge rouge
+  avec le nombre d'actions réellement en attente pour l'utilisateur connecté (`GET
+  /api/notifications/compteur`) — pour RH/DG, les demandes qu'il lui revient de valider (celles
+  qu'il n'a pas encore signées, en `SOUMISE` ou `EN_ATTENTE_SECONDE_VALIDATION`) ; pour le DG
+  s'ajoutent les postes budgétaires proposés par le RH en attente de décision. Ce n'est pas un
+  flux d'événements « lus/non lus » mais le nombre de choses à traiter maintenant ; rafraîchi
+  toutes les 30 s et immédiatement après chaque validation/rejet/annulation. L'Admin n'a rien à
+  valider et ne voit donc jamais de badge.
 
 Restant à développer (voir §7.9 du plan) :
 - Authentification à deux facteurs, durcissement sécurité (F-16, section 10)
