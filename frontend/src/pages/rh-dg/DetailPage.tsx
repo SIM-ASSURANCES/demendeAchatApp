@@ -69,11 +69,11 @@ export function DetailPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <button onClick={() => navigate(-1)} className="text-sm text-[#1F3864] hover:underline">← Retour à la liste</button>
+      <button onClick={() => navigate(-1)} className="text-sm text-[#004B9C] hover:underline">← Retour à la liste</button>
 
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[#1F3864]">Demande {demande.numero}</h1>
+          <h1 className="text-2xl font-bold text-[#004B9C]">Demande {demande.numero}</h1>
           <p className="text-sm text-gray-600">
             {demande.demandeurNom} — {demande.demandeurEmail} {demande.demandeurTelephone ? `— ${demande.demandeurTelephone}` : ""}
           </p>
@@ -146,7 +146,7 @@ export function DetailPage() {
       </section>
 
       {demande.statut === "SOUMISE" && (
-        <section className="rounded-lg border border-[#1F3864]/20 bg-white p-5 space-y-4">
+        <section className="rounded-lg border border-[#004B9C]/20 bg-white p-5 space-y-4">
           <h2 className="font-semibold text-gray-800">Actions</h2>
           <div className="flex flex-wrap gap-3">
             <button

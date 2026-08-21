@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "./lib/auth";
 import { Layout } from "./components/Layout";
+import { PrivateLayout } from "./components/PrivateLayout";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { PublicFormPage } from "./pages/PublicFormPage";
 import { SuiviEntryPage } from "./pages/SuiviEntryPage";
@@ -25,14 +26,18 @@ export default function App() {
               <Route path="/suivi" element={<SuiviEntryPage />} />
               <Route path="/suivi/:token" element={<SuiviPage />} />
               <Route path="/connexion" element={<LoginPage />} />
+            </Route>
 
-              <Route element={<ProtectedRoute rolesAutorises={["RH", "DG", "ADMIN"]} />}>
+            <Route element={<ProtectedRoute rolesAutorises={["RH", "DG", "ADMIN"]} />}>
+              <Route element={<PrivateLayout />}>
                 <Route path="/espace/demandes" element={<ListePage />} />
                 <Route path="/espace/demandes/:id" element={<DetailPage />} />
                 <Route path="/espace/rapports" element={<RapportsPage />} />
               </Route>
+            </Route>
 
-              <Route element={<ProtectedRoute rolesAutorises={["ADMIN"]} />}>
+            <Route element={<ProtectedRoute rolesAutorises={["ADMIN"]} />}>
+              <Route element={<PrivateLayout />}>
                 <Route path="/admin" element={<AdminPage />} />
               </Route>
             </Route>

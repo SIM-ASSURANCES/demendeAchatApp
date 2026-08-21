@@ -102,7 +102,7 @@ export function PublicFormPage() {
         </p>
         <Link
           to={`/suivi/${resultat.lienSuiviToken}`}
-          className="mt-4 inline-block rounded bg-[#1F3864] px-4 py-2 text-white hover:opacity-90"
+          className="mt-4 inline-block rounded bg-[#004B9C] px-4 py-2 text-white hover:opacity-90"
         >
           Suivre ma demande maintenant
         </Link>
@@ -116,7 +116,7 @@ export function PublicFormPage() {
       className="mx-auto max-w-3xl space-y-8"
     >
       <div>
-        <h1 className="text-2xl font-bold text-[#1F3864]">Demande d'achat</h1>
+        <h1 className="text-2xl font-bold text-[#004B9C]">Demande d'achat</h1>
         <p className="text-sm text-gray-600">
           Formulaire public — aucune authentification n'est requise pour soumettre une demande (F-01).
         </p>
@@ -182,7 +182,7 @@ export function PublicFormPage() {
           <button
             type="button"
             onClick={() => append({ libelle: "", quantite: 1, prixUnitaire: 0 })}
-            className="rounded bg-[#1F3864] px-3 py-1.5 text-sm text-white hover:opacity-90"
+            className="rounded bg-[#004B9C] px-3 py-1.5 text-sm text-white hover:opacity-90"
           >
             + Ajouter une ligne
           </button>
@@ -233,7 +233,7 @@ export function PublicFormPage() {
         <div className="flex justify-end border-t pt-3">
           <div className="text-right">
             <span className="text-sm text-gray-500">Total général</span>
-            <p className="text-xl font-bold text-[#1F3864]">{totalGeneral.toLocaleString("fr-FR")} XOF</p>
+            <p className="text-xl font-bold text-[#004B9C]">{totalGeneral.toLocaleString("fr-FR")} XOF</p>
           </div>
         </div>
       </section>
@@ -247,7 +247,7 @@ export function PublicFormPage() {
       <button
         type="submit"
         disabled={isSubmitting || soumission.isPending}
-        className="w-full rounded bg-[#1F3864] py-3 font-semibold text-white hover:opacity-90 disabled:opacity-60"
+        className="w-full rounded bg-[#004B9C] py-3 font-semibold text-white hover:opacity-90 disabled:opacity-60"
       >
         {soumission.isPending ? "Envoi en cours…" : "Envoyer la demande"}
       </button>

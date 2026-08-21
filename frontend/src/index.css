@@ -1,16 +1,19 @@
 @import "tailwindcss";
 
+/* Charte graphique SIM ASSURANCES : bleu institutionnel Pantone 004B9C / 51AEE2, police Montserrat. */
 :root {
   color-scheme: light;
+  --brand-navy: #004b9c;
+  --brand-blue: #51aee2;
 }
 
 body {
   margin: 0;
-  font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+  font-family: "Montserrat", system-ui, "Segoe UI", Roboto, sans-serif;
   background-color: #f4f6f9;
   color: #1f2937;
 }
 
 .champ {
-  @apply w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-[#1F3864] focus:outline-none focus:ring-1 focus:ring-[#1F3864];
+  @apply w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-[#004B9C] focus:outline-none focus:ring-1 focus:ring-[#004B9C];
 }

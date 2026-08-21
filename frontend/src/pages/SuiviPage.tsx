@@ -50,7 +50,7 @@ export function SuiviPage() {
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[#1F3864]">Demande {demande.numero}</h1>
+          <h1 className="text-2xl font-bold text-[#004B9C]">Demande {demande.numero}</h1>
           <p className="text-sm text-gray-600">Demandeur : {demande.demandeurNom}</p>
         </div>
         <StatutBadge statut={demande.statut} />

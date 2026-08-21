@@ -41,7 +41,7 @@ export function ListePage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-[#1F3864]">Demandes d'achat</h1>
+        <h1 className="text-2xl font-bold text-[#004B9C]">Demandes d'achat</h1>
       </div>
 
       <div className="flex flex-wrap gap-3">
@@ -81,7 +81,7 @@ export function ListePage() {
             {demandes?.map((d) => (
               <tr key={d.id} className="border-b hover:bg-gray-50">
                 <td className="px-4 py-2">
-                  <Link to={`/espace/demandes/${d.id}`} className="font-medium text-[#1F3864] hover:underline">
+                  <Link to={`/espace/demandes/${d.id}`} className="font-medium text-[#004B9C] hover:underline">
                     {d.numero}
                   </Link>
                 </td>

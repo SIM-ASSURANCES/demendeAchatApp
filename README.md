@@ -30,6 +30,16 @@ npm run dev         # http://localhost:5183
 
 Compte administrateur créé par le seed : identifiant `admin`, mot de passe `ChangezMoi#2026` — **à changer immédiatement**.
 
+## Charte graphique
+
+Le design applique la charte graphique officielle SIM ASSURANCES (`DOC SIMAS/CHARTE GRAPHIQUE SIM ASSURANCE CI.pdf`) :
+- Bleu institutionnel `#004B9C` (Pantone 004B9C) et bleu clair `#51AEE2` (Pantone 51AEE2)
+- Police **Montserrat** (communication institutionnelle et commerciale, chargée via Google Fonts)
+- Logotype (`frontend/public/logosim.webp`, version blanche pour fonds colorés) et favicon (`frontend/public/favicon.png`)
+- Espaces privés (RH/DG/Admin) : en-tête bleu institutionnel avec logo, identité de l'utilisateur connecté
+  et avatar ; barre latérale groupée par section (Demandes, Pilotage, Administration) avec icônes
+  (`lucide-react`), état actif, et bouton de réduction — voir [PrivateLayout.tsx](frontend/src/components/PrivateLayout.tsx)
+
 ## État d'avancement (voir le plan de développement)
 
 Réalisé (Sprint 0/1, et parties des Sprints 2 à 7) :

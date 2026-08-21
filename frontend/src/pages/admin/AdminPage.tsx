@@ -23,7 +23,7 @@ export function AdminPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-[#1F3864]">Administration</h1>
+      <h1 className="text-2xl font-bold text-[#004B9C]">Administration</h1>
 
       <div className="flex gap-2 border-b">
         {ONGLETS.map((o) => (
@@ -31,7 +31,7 @@ export function AdminPage() {
             key={o}
             onClick={() => setOnglet(o)}
             className={`px-4 py-2 text-sm font-medium ${
-              onglet === o ? "border-b-2 border-[#1F3864] text-[#1F3864]" : "text-gray-500"
+              onglet === o ? "border-b-2 border-[#004B9C] text-[#004B9C]" : "text-gray-500"
             }`}
           >
             {o}
@@ -84,7 +84,7 @@ function ReferenceAdmin({ ressource, libellePluriel }: { ressource: "categories"
           value={nouveauLibelle}
           onChange={(e) => setNouveauLibelle(e.target.value)}
         />
-        <button className="rounded bg-[#1F3864] px-4 py-2 text-sm font-semibold text-white hover:opacity-90">Ajouter</button>
+        <button className="rounded bg-[#004B9C] px-4 py-2 text-sm font-semibold text-white hover:opacity-90">Ajouter</button>
       </form>
       {creer.isError && <p className="text-sm text-red-600">{messageErreur(creer.error)}</p>}
 
@@ -105,7 +105,7 @@ function ReferenceAdmin({ ressource, libellePluriel }: { ressource: "categories"
                 <td className="py-2">
                   <button
                     onClick={() => basculerActif.mutate({ id: item.id, actif: !item.actif })}
-                    className="text-sm text-[#1F3864] hover:underline"
+                    className="text-sm text-[#004B9C] hover:underline"
                   >
                     {item.actif ? "Désactiver" : "Réactiver"}
                   </button>
@@ -172,7 +172,7 @@ function ComptesAdmin() {
         </select>
         <div className="sm:col-span-4">
           {creer.isError && <p className="mb-2 text-sm text-red-600">{messageErreur(creer.error)}</p>}
-          <button className="rounded bg-[#1F3864] px-4 py-2 text-sm font-semibold text-white hover:opacity-90">
+          <button className="rounded bg-[#004B9C] px-4 py-2 text-sm font-semibold text-white hover:opacity-90">
             Créer le compte
           </button>
         </div>

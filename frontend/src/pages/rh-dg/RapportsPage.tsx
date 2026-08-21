@@ -13,11 +13,12 @@ import {
   Cell,
   Legend,
 } from "recharts";
+import { Wallet, FileText } from "lucide-react";
 import { api } from "../../lib/api";
 
 // Palette catégorielle validée (dataviz skill — références/palette.md), ordre fixe jamais permuté.
 const CATEGORIEL = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#4a3aa7", "#e34948"];
-const BLEU_SEQUENTIEL = "#2a78d6";
+const BLEU_SEQUENTIEL = "#004B9C"; // bleu institutionnel SIM ASSURANCES (Pantone 004B9C)
 const GRILLE = "#e1e0d9";
 const AXE_MUET = "#898781";
 const ENCRE_SECONDAIRE = "#52514e";
@@ -120,7 +121,7 @@ export function RapportsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-[#1F3864]">Rapports et comptabilité</h1>
+        <h1 className="text-2xl font-bold text-[#004B9C]">Rapports et comptabilité</h1>
         <p className="text-sm text-gray-600">
           Demandes validées, ventilées par catégorie, entité et période (F-06). Les demandes annulées sont
           exclues des totaux par défaut (RG-11).
@@ -173,15 +174,25 @@ export function RapportsPage() {
       </section>
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="rounded-lg border bg-white p-5">
-          <p className="text-sm text-gray-500">Montant total validé</p>
-          <p className="mt-1 text-3xl font-semibold text-[#1F3864]">
-            {FORMAT_XOF.format(tableau.data?.totalGeneral ?? 0)} <span className="text-base font-normal text-gray-500">XOF</span>
-          </p>
+        <div className="flex items-center gap-4 rounded-lg border bg-white p-5">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#004B9C]/10 text-[#004B9C]">
+            <Wallet className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Montant total validé</p>
+            <p className="mt-0.5 text-2xl font-semibold text-[#004B9C]">
+              {FORMAT_XOF.format(tableau.data?.totalGeneral ?? 0)} <span className="text-sm font-normal text-gray-500">XOF</span>
+            </p>
+          </div>
         </div>
-        <div className="rounded-lg border bg-white p-5">
-          <p className="text-sm text-gray-500">Nombre de demandes</p>
-          <p className="mt-1 text-3xl font-semibold text-[#1F3864]">{tableau.data?.nombreDemandes ?? 0}</p>
+        <div className="flex items-center gap-4 rounded-lg border bg-white p-5">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#51AEE2]/15 text-[#51AEE2]">
+            <FileText className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Nombre de demandes</p>
+            <p className="mt-0.5 text-2xl font-semibold text-[#004B9C]">{tableau.data?.nombreDemandes ?? 0}</p>
+          </div>
         </div>
       </section>
 

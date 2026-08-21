@@ -12,29 +12,22 @@ export function Layout() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="bg-[#1F3864] text-white">
+      <header className="bg-[#004B9C]">
         <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
-          <Link to="/" className="font-semibold tracking-wide">
-            SIM ASSURANCES — Demandes d'achat
+          <Link to="/" className="flex items-center">
+            <img src="/logosim.webp" alt="SIM ASSURANCES" className="h-8 w-auto" />
           </Link>
-          <nav className="flex items-center gap-4 text-sm">
+          <nav className="flex items-center gap-4 text-sm text-white">
             <Link to="/" className="hover:underline">Nouvelle demande</Link>
             <Link to="/suivi" className="hover:underline">Suivre une demande</Link>
             {utilisateur ? (
               <>
-                {(utilisateur.role === "RH" || utilisateur.role === "DG") && (
-                  <>
-                    <Link to="/espace/demandes" className="hover:underline">Espace {utilisateur.role}</Link>
-                    <Link to="/espace/rapports" className="hover:underline">Rapports</Link>
-                  </>
-                )}
-                {utilisateur.role === "ADMIN" && (
-                  <>
-                    <Link to="/espace/rapports" className="hover:underline">Rapports</Link>
-                    <Link to="/admin" className="hover:underline">Administration</Link>
-                  </>
-                )}
-                <span className="text-white/70">{utilisateur.nom}</span>
+                <Link
+                  to={utilisateur.role === "ADMIN" ? "/admin" : "/espace/demandes"}
+                  className="rounded bg-white/10 px-3 py-1 hover:bg-white/20"
+                >
+                  Accéder à mon espace
+                </Link>
                 <button onClick={handleDeconnexion} className="rounded bg-white/10 px-3 py-1 hover:bg-white/20">
                   Déconnexion
                 </button>

@@ -27,7 +27,7 @@ export function LoginPage() {
 
   return (
     <div className="mx-auto max-w-sm">
-      <h1 className="text-2xl font-bold text-[#1F3864]">Connexion</h1>
+      <h1 className="text-2xl font-bold text-[#004B9C]">Connexion</h1>
       <p className="mt-1 text-sm text-gray-600">Espace RH, Direction Générale ou Administration.</p>
       <form onSubmit={handleSubmit} className="mt-6 space-y-3">
         <label className="block text-sm">
@@ -48,7 +48,7 @@ export function LoginPage() {
         <button
           type="submit"
           disabled={enCours}
-          className="w-full rounded bg-[#1F3864] py-2.5 font-semibold text-white hover:opacity-90 disabled:opacity-60"
+          className="w-full rounded bg-[#004B9C] py-2.5 font-semibold text-white hover:opacity-90 disabled:opacity-60"
         >
           {enCours ? "Connexion…" : "Se connecter"}
         </button>
