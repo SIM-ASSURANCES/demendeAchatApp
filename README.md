@@ -54,6 +54,12 @@ statut intermédiaire `EN_ATTENTE_SECONDE_VALIDATION` :
 - notifications dédiées (F-09) : le demandeur est informé dès la première validation, et le
   second valideur reçoit un email ciblé l'invitant à se prononcer.
 
+**Confirmation de livraison** (hors CDC, ajout demandé) : une fois la demande `VALIDEE`, le RH
+dispose d'un bouton « Confirmer la livraison » (`POST /api/demandes/:id/livrer`, réservé au RH)
+qui horodate la réception effective des articles (`livreLe` / `livreParId`). N'affecte pas le
+statut d'approbation — c'est une information de suivi logistique distincte, visible par tous
+(espace RH/DG et page de suivi du demandeur), avec notification email au demandeur.
+
 **Le [Plan de développement](Plan_de_developpement_Demande_Achat_SIM_ASSURANCES.docx) livré
 mentionne encore l'ancienne règle (RG-04, validation unique) — il n'a pas été régénéré suite à ce
 changement.**

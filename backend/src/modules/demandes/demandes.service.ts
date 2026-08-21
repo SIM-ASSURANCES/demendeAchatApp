@@ -229,6 +229,7 @@ export async function obtenirDetail(id: string) {
       budget: true,
       validePar: { select: { id: true, nom: true, role: true } },
       annulePar: { select: { id: true, nom: true, role: true } },
+      livrePar: { select: { id: true, nom: true, role: true } },
     },
   });
   if (!demande) throw new ApiError(404, "Demande introuvable.");
@@ -377,6 +378,37 @@ export async function annulerDemande(
   // F-09 : email au demandeur, avec le motif d'annulation.
   const motifLisible = motif.commentaire ? `${motif.categorie} — ${motif.commentaire}` : motif.categorie;
   await notifierChangementStatut(misAJour, "ANNULEE", motifLisible, misAJour.lienSuiviToken);
+
+  return misAJour;
+}
+
+// Confirmation de livraison : une fois la demande validée (double validation obtenue), le RH
+// confirme la réception effective des articles commandés. N'affecte pas le statut d'approbation
+// (VALIDEE) — c'est une information de suivi logistique distincte, horodatée séparément.
+export async function livrerDemande(demandeId: string, acteur: { id: string; nom: string }) {
+  const demande = await prisma.demandeAchat.findUnique({ where: { id: demandeId } });
+  if (!demande) throw new ApiError(404, "Demande introuvable.");
+  if (demande.statut !== StatutDemande.VALIDEE) {
+    throw new ApiError(409, "Seule une demande validée peut être marquée comme livrée.");
+  }
+  if (demande.livreLe) {
+    throw new ApiError(409, "Cette demande a déjà été marquée comme livrée.");
+  }
+
+  const misAJour = await prisma.demandeAchat.update({
+    where: { id: demandeId },
+    data: { livreLe: new Date(), livreParId: acteur.id },
+  });
+
+  await consignerAudit({
+    demandeId,
+    action: "DEMANDE_LIVREE",
+    auteurId: acteur.id,
+    auteurLibelle: acteur.nom,
+  });
+
+  // F-09 : email au demandeur pour l'informer de la livraison.
+  await notifierChangementStatut(misAJour, "LIVREE", undefined, misAJour.lienSuiviToken);
 
   return misAJour;
 }

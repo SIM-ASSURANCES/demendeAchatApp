@@ -22,6 +22,7 @@ interface Demande {
   dateLivraisonSouhaitee: string;
   motifRejet?: string | null;
   motifAnnulationCommentaire?: string | null;
+  livreLe?: string | null;
   lignes: LigneArticle[];
   entite: { libelle: string };
   categorie: { libelle: string };
@@ -155,9 +156,18 @@ export function SuiviPage() {
       )}
 
       {demande.statut === "VALIDEE" && (
-        <p className="text-center text-sm text-gray-500">
-          Cette demande est verrouillée : plus aucune modification n'est possible (F-04).
-        </p>
+        <div className="space-y-2 text-center">
+          <p className="text-sm text-gray-500">
+            Cette demande est verrouillée : plus aucune modification n'est possible (F-04).
+          </p>
+          <p className="text-sm">
+            {demande.livreLe ? (
+              <span className="text-emerald-700">✓ Livrée le {new Date(demande.livreLe).toLocaleString("fr-FR")}</span>
+            ) : (
+              <span className="text-gray-400 italic">Pas encore livrée</span>
+            )}
+          </p>
+        </div>
       )}
     </div>
   );

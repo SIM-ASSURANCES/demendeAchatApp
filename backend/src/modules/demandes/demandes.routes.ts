@@ -16,6 +16,7 @@ import {
   validerDemande,
   rejeterDemande,
   annulerDemande,
+  livrerDemande,
 } from "./demandes.service";
 import { genererFichePdf } from "./fiche.export";
 import { verifierCode } from "../../lib/verification";
@@ -279,6 +280,19 @@ demandesRouter.post("/:id/annuler", authentifier, autoriser("RH", "DG"), async (
     const parsed = annulationSchema.safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ message: "Motif d'annulation requis." });
     const demande = await annulerDemande(req.params.id, parsed.data, {
+      id: req.utilisateur!.sub,
+      nom: req.utilisateur!.nom,
+    });
+    res.json(demande);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Confirmation de livraison, réservée au RH.
+demandesRouter.post("/:id/livrer", authentifier, autoriser("RH"), async (req, res, next) => {
+  try {
+    const demande = await livrerDemande(req.params.id, {
       id: req.utilisateur!.sub,
       nom: req.utilisateur!.nom,
     });

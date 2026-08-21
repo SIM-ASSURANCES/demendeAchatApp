@@ -18,6 +18,8 @@ interface Detail {
   devise: string;
   dateLivraisonSouhaitee: string;
   motifRejet?: string | null;
+  livreLe?: string | null;
+  livrePar?: { nom: string } | null;
   lignes: { id: string; libelle: string; quantite: string; prixUnitaire: string; total: string }[];
   entite: { libelle: string };
   categorie: { libelle: string };
@@ -66,6 +68,11 @@ export function DetailPage() {
       setAfficherAnnulation(false);
       invalider();
     },
+  });
+
+  const livrer = useMutation({
+    mutationFn: async () => api.post(`/demandes/${id}/livrer`),
+    onSuccess: invalider,
   });
 
   if (isLoading) return <p className="text-center text-gray-500">Chargement…</p>;
@@ -237,6 +244,34 @@ export function DetailPage() {
           </section>
         );
       })()}
+
+      {demande.statut === "VALIDEE" && (
+        <section className="rounded-lg border bg-white p-5">
+          <h2 className="mb-3 font-semibold text-gray-800">Livraison</h2>
+          {demande.livreLe ? (
+            <p className="text-sm text-emerald-800">
+              ✓ Livrée le {new Date(demande.livreLe).toLocaleString("fr-FR")}
+              {demande.livrePar ? ` par ${demande.livrePar.nom}` : ""}.
+            </p>
+          ) : utilisateur?.role === "RH" ? (
+            <div className="space-y-2">
+              <p className="text-sm text-gray-600">
+                Confirmez la réception effective des articles commandés pour cette demande.
+              </p>
+              {livrer.isError && <p className="text-sm text-red-600">{messageErreur(livrer.error)}</p>}
+              <button
+                onClick={() => livrer.mutate()}
+                disabled={livrer.isPending}
+                className="rounded bg-[#004B9C] px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60"
+              >
+                Confirmer la livraison
+              </button>
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500 italic">Pas encore livrée.</p>
+          )}
+        </section>
+      )}
 
       {demande.statut === "VALIDEE" && (
         <section className="rounded-lg border bg-white p-5 space-y-4">

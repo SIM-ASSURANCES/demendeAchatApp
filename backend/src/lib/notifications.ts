@@ -68,16 +68,17 @@ export async function notifierNouvelleDemande(demande: DemandeNotif): Promise<vo
   );
 }
 
-const LIBELLE_EVENEMENT: Record<"VALIDEE" | "REJETEE" | "ANNULEE", string> = {
+const LIBELLE_EVENEMENT: Record<"VALIDEE" | "REJETEE" | "ANNULEE" | "LIVREE", string> = {
   VALIDEE: "a été validée",
   REJETEE: "a été rejetée",
   ANNULEE: "a été annulée",
+  LIVREE: "a été marquée comme livrée",
 };
 
 // F-09 : email au demandeur à chaque changement de statut de sa demande.
 export async function notifierChangementStatut(
   demande: DemandeNotif,
-  evenement: "VALIDEE" | "REJETEE" | "ANNULEE",
+  evenement: "VALIDEE" | "REJETEE" | "ANNULEE" | "LIVREE",
   motif?: string,
   lienSuiviToken?: string
 ): Promise<void> {

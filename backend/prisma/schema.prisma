@@ -51,6 +51,7 @@ model Utilisateur {
   entitesCreees      Entite[]        @relation("EntiteCreateur")
   demandesValidees   DemandeAchat[]  @relation("DemandeValideur")
   demandesAnnulees   DemandeAchat[]  @relation("DemandeAnnulateur")
+  demandesLivrees    DemandeAchat[]  @relation("DemandeLivreur")
   signatures         Signature[]
   actionsAudit       JournalAudit[]
 
@@ -152,6 +153,11 @@ model DemandeAchat {
   annulePar            Utilisateur? @relation("DemandeAnnulateur", fields: [annuleParId], references: [id])
   motifAnnulationCategorie String?
   motifAnnulationCommentaire String?
+
+  // Confirmation de livraison, par le RH, une fois la demande validée.
+  livreLe             DateTime?
+  livreParId          String?
+  livrePar            Utilisateur? @relation("DemandeLivreur", fields: [livreParId], references: [id])
 
   creeLe              DateTime     @default(now())
   majLe                DateTime     @updatedAt
