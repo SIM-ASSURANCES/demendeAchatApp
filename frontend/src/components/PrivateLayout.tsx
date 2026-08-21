@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { Bell, ChevronsLeft, ChevronsRight, LogOut } from "lucide-react";
+import { ChevronsLeft, ChevronsRight, LogOut } from "lucide-react";
 import { useAuth } from "../lib/auth";
-import { api } from "../lib/api";
 import { sectionsNavigation } from "../config/navigation";
+import { NotificationCloche } from "./NotificationCloche";
 
 const LIBELLES_ROLE: Record<string, string> = {
   RH: "Responsable Comptable Financier RH",
@@ -23,13 +22,6 @@ export function PrivateLayout() {
   const location = useLocation();
   const [reduit, setReduit] = useState(false);
 
-  const compteur = useQuery({
-    queryKey: ["notifications-compteur"],
-    queryFn: async () => (await api.get<{ total: number }>("/notifications/compteur")).data,
-    enabled: !!utilisateur,
-    refetchInterval: 30_000,
-  });
-
   if (!utilisateur) return null;
 
   async function handleDeconnexion() {
@@ -37,7 +29,6 @@ export function PrivateLayout() {
     navigate("/connexion");
   }
 
-  const total = compteur.data?.total ?? 0;
   const sections = sectionsNavigation(utilisateur.role);
   const largeurSidebar = reduit ? "w-[76px]" : "w-[260px]";
 
@@ -48,19 +39,7 @@ export function PrivateLayout() {
           <img src="/logosim.webp" alt="SIM ASSURANCES" className="h-9 w-auto" />
         </Link>
         <div className="flex items-center gap-4">
-          <button
-            type="button"
-            onClick={() => navigate("/espace/demandes")}
-            title={total > 0 ? `${total} action${total > 1 ? "s" : ""} en attente` : "Aucune action en attente"}
-            className="relative flex h-9 w-9 items-center justify-center rounded-full text-white/90 hover:bg-white/10"
-          >
-            <Bell className="h-[18px] w-[18px]" />
-            {total > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold leading-none text-white ring-2 ring-[#004B9C]">
-                {total > 9 ? "9+" : total}
-              </span>
-            )}
-          </button>
+          <NotificationCloche />
           <div className="text-right leading-tight">
             <p className="text-sm font-semibold text-white">{utilisateur.nom}</p>
             <p className="text-xs text-white/70">{LIBELLES_ROLE[utilisateur.role] ?? utilisateur.role}</p>

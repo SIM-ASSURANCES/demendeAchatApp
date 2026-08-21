@@ -64,8 +64,26 @@ model Utilisateur {
   budgetsRejetes     Budget[]        @relation("BudgetRejeteur")
   signatures         Signature[]
   actionsAudit       JournalAudit[]
+  notifications      Notification[]
 
   @@map("utilisateurs")
+}
+
+// Centre de notifications in-app (cloche de l'espace privé) : un événement métier adressé à un
+// utilisateur précis (RH ou DG concerné), consulté puis marqué comme lu au moment de l'ouverture
+// du panneau — distinct des emails (F-09), qui restent envoyés en parallèle par lib/notifications.ts.
+model Notification {
+  id             String   @id @default(uuid())
+  destinataireId String
+  destinataire   Utilisateur @relation(fields: [destinataireId], references: [id], onDelete: Cascade)
+  titre          String
+  message        String
+  lien           String?
+  lu             Boolean  @default(false)
+  creeLe         DateTime @default(now())
+
+  @@index([destinataireId, lu])
+  @@map("notifications")
 }
 
 model Categorie {

@@ -1,43 +1,35 @@
 import { Router } from "express";
-import { RoleSignataire, StatutBudget, StatutDemande } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
 import { authentifier } from "../../middleware/auth.middleware";
 
 export const notificationsRouter = Router();
 
-// Compteur d'actions en attente pour l'utilisateur connecté (cloche de l'espace privé) : le
-// nombre de demandes qu'il lui revient de valider ou rejeter, plus — pour le DG — les postes
-// budgétaires proposés par le RH qui attendent sa décision. Ce n'est pas un flux d'événements
-// « lus/non lus » : c'est ce qui reste concrètement à traiter maintenant.
-notificationsRouter.get("/compteur", authentifier, async (req, res) => {
-  const role = req.utilisateur!.role;
+notificationsRouter.use(authentifier);
 
-  if (role !== "RH" && role !== "DG") {
-    return res.json({ total: 0 });
-  }
-
-  const demandesEnAttenteDeMoi = await prisma.demandeAchat.count({
-    where: {
-      OR: [
-        { statut: StatutDemande.SOUMISE },
-        {
-          statut: StatutDemande.EN_ATTENTE_SECONDE_VALIDATION,
-          signatures: { none: { role: role as RoleSignataire } },
-        },
-      ],
-    },
+// Nombre de notifications non lues — badge rouge de la cloche.
+notificationsRouter.get("/compteur", async (req, res) => {
+  const total = await prisma.notification.count({
+    where: { destinataireId: req.utilisateur!.sub, lu: false },
   });
+  res.json({ total });
+});
 
-  let budgetsEnAttente = 0;
-  if (role === "DG") {
-    budgetsEnAttente = await prisma.budget.count({
-      where: { statut: StatutBudget.EN_ATTENTE_VALIDATION },
-    });
-  }
-
-  res.json({
-    total: demandesEnAttenteDeMoi + budgetsEnAttente,
-    demandes: demandesEnAttenteDeMoi,
-    budgets: budgetsEnAttente,
+// Dernières notifications non lues, affichées dans le panneau ouvert au clic sur la cloche.
+notificationsRouter.get("/", async (req, res) => {
+  const notifications = await prisma.notification.findMany({
+    where: { destinataireId: req.utilisateur!.sub, lu: false },
+    orderBy: { creeLe: "desc" },
+    take: 20,
   });
+  res.json(notifications);
+});
+
+// Marque comme lues les notifications encore non lues (celles qui viennent d'être consultées dans
+// le panneau) — elles ne réapparaîtront plus au prochain calcul du compteur ni de la liste.
+notificationsRouter.post("/marquer-lues", async (req, res) => {
+  await prisma.notification.updateMany({
+    where: { destinataireId: req.utilisateur!.sub, lu: false },
+    data: { lu: true },
+  });
+  res.status(204).send();
 });

@@ -17,12 +17,25 @@ interface DemandeNotif {
   lienSuiviToken?: string;
 }
 
-async function destinatairesValideurs(): Promise<{ nom: string; email: string }[]> {
-  const utilisateurs = await prisma.utilisateur.findMany({
-    where: { role: { in: ["RH", "DG"] }, actif: true, email: { not: null } },
-    select: { nom: true, email: true },
+// Centre de notifications in-app (cloche de l'espace privé) — distinct de l'email, adressé aux
+// seuls comptes RH/DG/Admin (le demandeur, non authentifié, n'a pas d'espace où les consulter).
+async function enregistrerNotification(destinataireId: string, titre: string, message: string, lien?: string): Promise<void> {
+  await prisma.notification.create({ data: { destinataireId, titre, message, lien } });
+}
+
+async function enregistrerNotifications(destinataireIds: string[], titre: string, message: string, lien?: string): Promise<void> {
+  if (destinataireIds.length === 0) return;
+  await prisma.notification.createMany({
+    data: destinataireIds.map((destinataireId) => ({ destinataireId, titre, message, lien })),
   });
-  return utilisateurs.filter((u): u is { nom: string; email: string } => !!u.email);
+}
+
+async function destinatairesValideurs(): Promise<{ id: string; nom: string; email: string }[]> {
+  const utilisateurs = await prisma.utilisateur.findMany({
+    where: { role: { in: ["RH", "DG"] }, actif: true },
+    select: { id: true, nom: true, email: true },
+  });
+  return utilisateurs.map((u) => ({ id: u.id, nom: u.nom, email: u.email ?? "" }));
 }
 
 // F-09 : accusé de réception au demandeur, avec le lien de suivi personnel.
@@ -45,27 +58,39 @@ export async function notifierAccuseReception(demande: DemandeNotif & { lienSuiv
   });
 }
 
-// F-09 : email aux valideurs RH et DG dès qu'une nouvelle demande est soumise et en attente.
+// F-09 : email + notification in-app aux valideurs RH et DG dès qu'une nouvelle demande est soumise.
 export async function notifierNouvelleDemande(demande: DemandeNotif): Promise<void> {
   const destinataires = await destinatairesValideurs();
   if (destinataires.length === 0) return;
 
-  const lienEspace = `${env.frontendUrl}/espace/demandes`;
-  await envoyerEmails(
-    destinataires.map((d) => ({
-      to: d.email,
-      subject: `Nouvelle demande d'achat à traiter — ${demande.numero}`,
-      html: gabaritEmail(
-        "Une nouvelle demande d'achat attend votre décision",
-        `<p>Bonjour ${d.nom},</p>
-         <p>${demande.demandeurNom} a soumis la demande <strong>${demande.numero}</strong> pour un montant de
-         <strong>${FORMAT_MONTANT.format(Number(demande.montantTotal))} ${demande.devise}</strong>.</p>
-         <p><em>Motif : ${demande.motif}</em></p>`,
-        lienEspace,
-        "Traiter la demande"
-      ),
-    }))
-  );
+  const lienEspace = `/espace/demandes/${demande.id}`;
+  const montant = `${FORMAT_MONTANT.format(Number(demande.montantTotal))} ${demande.devise}`;
+
+  await Promise.allSettled([
+    envoyerEmails(
+      destinataires
+        .filter((d) => d.email)
+        .map((d) => ({
+          to: d.email,
+          subject: `Nouvelle demande d'achat à traiter — ${demande.numero}`,
+          html: gabaritEmail(
+            "Une nouvelle demande d'achat attend votre décision",
+            `<p>Bonjour ${d.nom},</p>
+             <p>${demande.demandeurNom} a soumis la demande <strong>${demande.numero}</strong> pour un montant de
+             <strong>${montant}</strong>.</p>
+             <p><em>Motif : ${demande.motif}</em></p>`,
+            `${env.frontendUrl}${lienEspace}`,
+            "Traiter la demande"
+          ),
+        }))
+    ),
+    enregistrerNotifications(
+      destinataires.map((d) => d.id),
+      `Nouvelle demande à traiter — ${demande.numero}`,
+      `${demande.demandeurNom} — ${montant}`,
+      lienEspace
+    ),
+  ]);
 }
 
 const LIBELLE_EVENEMENT: Record<"VALIDEE" | "REJETEE" | "ANNULEE" | "LIVREE", string> = {
@@ -124,30 +149,40 @@ export async function notifierValidationPartielle(
   });
 }
 
-// Double validation : email au valideur dont la signature manque encore, dès que l'autre a validé.
+// Double validation : email + notification in-app au valideur dont la signature manque encore.
 export async function notifierSecondeValidationRequise(demande: DemandeNotif, roleRestant: "RH" | "DG"): Promise<void> {
   const utilisateurs = await prisma.utilisateur.findMany({
-    where: { role: roleRestant, actif: true, email: { not: null } },
-    select: { nom: true, email: true },
+    where: { role: roleRestant, actif: true },
+    select: { id: true, nom: true, email: true },
   });
-  const destinataires = utilisateurs.filter((u): u is { nom: string; email: string } => !!u.email);
-  if (destinataires.length === 0) return;
+  if (utilisateurs.length === 0) return;
 
-  const lienEspace = `${env.frontendUrl}/espace/demandes`;
-  await envoyerEmails(
-    destinataires.map((d) => ({
-      to: d.email,
-      subject: `Votre validation est encore nécessaire — ${demande.numero}`,
-      html: gabaritEmail(
-        "Une demande attend votre validation pour devenir définitive",
-        `<p>Bonjour ${d.nom},</p>
-         <p>La demande <strong>${demande.numero}</strong> (${demande.demandeurNom}, ${FORMAT_MONTANT.format(Number(demande.montantTotal))} ${demande.devise})
-         a déjà reçu une première validation et attend désormais la vôtre pour devenir définitive.</p>`,
-        lienEspace,
-        "Traiter la demande"
-      ),
-    }))
-  );
+  const lienEspace = `/espace/demandes/${demande.id}`;
+
+  await Promise.allSettled([
+    envoyerEmails(
+      utilisateurs
+        .filter((u): u is { id: string; nom: string; email: string } => !!u.email)
+        .map((d) => ({
+          to: d.email,
+          subject: `Votre validation est encore nécessaire — ${demande.numero}`,
+          html: gabaritEmail(
+            "Une demande attend votre validation pour devenir définitive",
+            `<p>Bonjour ${d.nom},</p>
+             <p>La demande <strong>${demande.numero}</strong> (${demande.demandeurNom}, ${FORMAT_MONTANT.format(Number(demande.montantTotal))} ${demande.devise})
+             a déjà reçu une première validation et attend désormais la vôtre pour devenir définitive.</p>`,
+            `${env.frontendUrl}${lienEspace}`,
+            "Traiter la demande"
+          ),
+        }))
+    ),
+    enregistrerNotifications(
+      utilisateurs.map((u) => u.id),
+      `Votre validation est nécessaire — ${demande.numero}`,
+      `Première validation déjà obtenue pour ${demande.demandeurNom}`,
+      lienEspace
+    ),
+  ]);
 }
 
 interface BudgetNotif {
@@ -159,57 +194,73 @@ interface BudgetNotif {
   categorie: { libelle: string };
 }
 
-// Paramétrage des budgets : email au DG dès qu'un poste budgétaire est proposé par le RH.
+// Paramétrage des budgets : email + notification in-app au DG dès qu'un poste est proposé par le RH.
 export async function notifierNouveauBudgetPropose(budget: BudgetNotif, proposePar: { nom: string }): Promise<void> {
   const destinataires = await prisma.utilisateur.findMany({
-    where: { role: "DG", actif: true, email: { not: null } },
-    select: { nom: true, email: true },
+    where: { role: "DG", actif: true },
+    select: { id: true, nom: true, email: true },
   });
-  const cibles = destinataires.filter((u): u is { nom: string; email: string } => !!u.email);
-  if (cibles.length === 0) return;
+  if (destinataires.length === 0) return;
 
-  const lien = `${env.frontendUrl}/espace/budgets`;
-  await envoyerEmails(
-    cibles.map((d) => ({
-      to: d.email,
-      subject: `Nouveau poste budgétaire à valider — ${budget.poste}`,
-      html: gabaritEmail(
-        "Un poste budgétaire attend votre validation",
-        `<p>Bonjour ${d.nom},</p>
-         <p>${proposePar.nom} a proposé le poste budgétaire <strong>${budget.poste}</strong>
-         (${budget.entite.libelle} — ${budget.categorie.libelle}) pour un montant alloué de
-         <strong>${FORMAT_MONTANT.format(Number(budget.montantAlloue))} ${budget.devise}</strong>.</p>`,
-        lien,
-        "Traiter la proposition"
-      ),
-    }))
-  );
+  const lien = "/espace/budgets";
+
+  await Promise.allSettled([
+    envoyerEmails(
+      destinataires
+        .filter((d): d is { id: string; nom: string; email: string } => !!d.email)
+        .map((d) => ({
+          to: d.email,
+          subject: `Nouveau poste budgétaire à valider — ${budget.poste}`,
+          html: gabaritEmail(
+            "Un poste budgétaire attend votre validation",
+            `<p>Bonjour ${d.nom},</p>
+             <p>${proposePar.nom} a proposé le poste budgétaire <strong>${budget.poste}</strong>
+             (${budget.entite.libelle} — ${budget.categorie.libelle}) pour un montant alloué de
+             <strong>${FORMAT_MONTANT.format(Number(budget.montantAlloue))} ${budget.devise}</strong>.</p>`,
+            `${env.frontendUrl}${lien}`,
+            "Traiter la proposition"
+          ),
+        }))
+    ),
+    enregistrerNotifications(
+      destinataires.map((d) => d.id),
+      `Poste budgétaire à valider — ${budget.poste}`,
+      `Proposé par ${proposePar.nom} (${budget.entite.libelle} — ${budget.categorie.libelle})`,
+      lien
+    ),
+  ]);
 }
 
-// Paramétrage des budgets : email au RH proposeur dès que le DG valide ou rejette le poste.
+// Paramétrage des budgets : email + notification in-app au RH proposeur, dès la décision du DG.
 export async function notifierDecisionBudget(
   budget: BudgetNotif,
-  proposePar: { email: string | null; nom: string } | null,
+  proposePar: { id: string; email: string | null; nom: string } | null,
   decision: "VALIDE" | "REJETE",
   motif?: string
 ): Promise<void> {
-  if (!proposePar?.email) return;
+  if (!proposePar) return;
 
-  const lien = `${env.frontendUrl}/espace/budgets`;
+  const lien = "/espace/budgets";
   const libelle = decision === "VALIDE" ? "a été validé" : "a été rejeté";
-  await envoyerEmail({
-    to: proposePar.email,
-    subject: `Poste budgétaire ${budget.poste} — ${libelle}`,
-    html: gabaritEmail(
-      `Votre proposition de poste budgétaire ${libelle}`,
-      `<p>Bonjour ${proposePar.nom},</p>
-       <p>Le poste budgétaire <strong>${budget.poste}</strong> (${budget.entite.libelle} — ${budget.categorie.libelle})
-       que vous avez proposé ${libelle} par la Direction Générale.</p>
-       ${motif ? `<p><em>Motif : ${motif}</em></p>` : ""}`,
-      lien,
-      "Consulter les budgets"
-    ),
-  });
+
+  await Promise.allSettled([
+    proposePar.email
+      ? envoyerEmail({
+          to: proposePar.email,
+          subject: `Poste budgétaire ${budget.poste} — ${libelle}`,
+          html: gabaritEmail(
+            `Votre proposition de poste budgétaire ${libelle}`,
+            `<p>Bonjour ${proposePar.nom},</p>
+             <p>Le poste budgétaire <strong>${budget.poste}</strong> (${budget.entite.libelle} — ${budget.categorie.libelle})
+             que vous avez proposé ${libelle} par la Direction Générale.</p>
+             ${motif ? `<p><em>Motif : ${motif}</em></p>` : ""}`,
+            `${env.frontendUrl}${lien}`,
+            "Consulter les budgets"
+          ),
+        })
+      : Promise.resolve(),
+    enregistrerNotification(proposePar.id, `Poste budgétaire ${budget.poste} — ${libelle}`, motif ?? "", lien),
+  ]);
 }
 
 // F-09 : alerte spécifique en cas de dépassement ou de quasi-dépassement d'un poste budgétaire.
@@ -219,23 +270,34 @@ export async function notifierAlerteBudget(budget: BudgetAvecSuivi): Promise<voi
   if (destinataires.length === 0) return;
 
   const estDepassement = budget.alerte === "DEPASSEMENT";
-  const lienRapports = `${env.frontendUrl}/espace/rapports`;
+  const lien = "/espace/rapports";
+  const titre = `${estDepassement ? "Dépassement" : "Quasi-dépassement"} de budget — ${budget.poste}`;
 
-  await envoyerEmails(
-    destinataires.map((d) => ({
-      to: d.email,
-      subject: `${estDepassement ? "Dépassement" : "Quasi-dépassement"} de budget — ${budget.poste}`,
-      html: gabaritEmail(
-        estDepassement ? "Un poste budgétaire est dépassé" : "Un poste budgétaire approche de sa limite",
-        `<p>Bonjour ${d.nom},</p>
-         <p>Le poste budgétaire <strong>${budget.poste}</strong> (${budget.entite.libelle} — ${budget.categorie.libelle})
-         a atteint <strong>${Math.round(budget.pourcentageConsomme * 100)} %</strong> du budget alloué.</p>
-         <p>Budget alloué : ${FORMAT_MONTANT.format(budget.montantAlloue)} ${budget.devise}<br/>
-         Réalisé : ${FORMAT_MONTANT.format(budget.realise)} ${budget.devise}<br/>
-         Disponible : ${FORMAT_MONTANT.format(budget.disponible)} ${budget.devise}</p>`,
-        lienRapports,
-        "Consulter le suivi budgétaire"
-      ),
-    }))
-  );
+  await Promise.allSettled([
+    envoyerEmails(
+      destinataires
+        .filter((d) => d.email)
+        .map((d) => ({
+          to: d.email,
+          subject: titre,
+          html: gabaritEmail(
+            estDepassement ? "Un poste budgétaire est dépassé" : "Un poste budgétaire approche de sa limite",
+            `<p>Bonjour ${d.nom},</p>
+             <p>Le poste budgétaire <strong>${budget.poste}</strong> (${budget.entite.libelle} — ${budget.categorie.libelle})
+             a atteint <strong>${Math.round(budget.pourcentageConsomme * 100)} %</strong> du budget alloué.</p>
+             <p>Budget alloué : ${FORMAT_MONTANT.format(budget.montantAlloue)} ${budget.devise}<br/>
+             Réalisé : ${FORMAT_MONTANT.format(budget.realise)} ${budget.devise}<br/>
+             Disponible : ${FORMAT_MONTANT.format(budget.disponible)} ${budget.devise}</p>`,
+            `${env.frontendUrl}${lien}`,
+            "Consulter le suivi budgétaire"
+          ),
+        }))
+    ),
+    enregistrerNotifications(
+      destinataires.map((d) => d.id),
+      titre,
+      `${Math.round(budget.pourcentageConsomme * 100)} % du budget alloué consommé`,
+      lien
+    ),
+  ]);
 }
