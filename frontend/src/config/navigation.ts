@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { FileStack, BarChart3, Settings } from "lucide-react";
+import { FileStack, BarChart3, Wallet, Settings } from "lucide-react";
 import type { Role } from "../lib/auth";
 
 export interface NavItem {
@@ -22,7 +22,10 @@ export function sectionsNavigation(role: Role): NavSection[] {
     },
     {
       titre: "Pilotage",
-      items: [{ label: "Rapports", to: "/espace/rapports", icon: BarChart3 }],
+      items: [
+        { label: "Rapports", to: "/espace/rapports", icon: BarChart3 },
+        { label: "Budgets", to: "/espace/budgets", icon: Wallet },
+      ],
     },
   ];
 

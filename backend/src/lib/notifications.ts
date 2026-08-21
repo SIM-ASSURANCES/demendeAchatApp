@@ -150,6 +150,68 @@ export async function notifierSecondeValidationRequise(demande: DemandeNotif, ro
   );
 }
 
+interface BudgetNotif {
+  id: string;
+  poste: string;
+  montantAlloue: unknown;
+  devise: string;
+  entite: { libelle: string };
+  categorie: { libelle: string };
+}
+
+// Paramétrage des budgets : email au DG dès qu'un poste budgétaire est proposé par le RH.
+export async function notifierNouveauBudgetPropose(budget: BudgetNotif, proposePar: { nom: string }): Promise<void> {
+  const destinataires = await prisma.utilisateur.findMany({
+    where: { role: "DG", actif: true, email: { not: null } },
+    select: { nom: true, email: true },
+  });
+  const cibles = destinataires.filter((u): u is { nom: string; email: string } => !!u.email);
+  if (cibles.length === 0) return;
+
+  const lien = `${env.frontendUrl}/espace/budgets`;
+  await envoyerEmails(
+    cibles.map((d) => ({
+      to: d.email,
+      subject: `Nouveau poste budgétaire à valider — ${budget.poste}`,
+      html: gabaritEmail(
+        "Un poste budgétaire attend votre validation",
+        `<p>Bonjour ${d.nom},</p>
+         <p>${proposePar.nom} a proposé le poste budgétaire <strong>${budget.poste}</strong>
+         (${budget.entite.libelle} — ${budget.categorie.libelle}) pour un montant alloué de
+         <strong>${FORMAT_MONTANT.format(Number(budget.montantAlloue))} ${budget.devise}</strong>.</p>`,
+        lien,
+        "Traiter la proposition"
+      ),
+    }))
+  );
+}
+
+// Paramétrage des budgets : email au RH proposeur dès que le DG valide ou rejette le poste.
+export async function notifierDecisionBudget(
+  budget: BudgetNotif,
+  proposePar: { email: string | null; nom: string } | null,
+  decision: "VALIDE" | "REJETE",
+  motif?: string
+): Promise<void> {
+  if (!proposePar?.email) return;
+
+  const lien = `${env.frontendUrl}/espace/budgets`;
+  const libelle = decision === "VALIDE" ? "a été validé" : "a été rejeté";
+  await envoyerEmail({
+    to: proposePar.email,
+    subject: `Poste budgétaire ${budget.poste} — ${libelle}`,
+    html: gabaritEmail(
+      `Votre proposition de poste budgétaire ${libelle}`,
+      `<p>Bonjour ${proposePar.nom},</p>
+       <p>Le poste budgétaire <strong>${budget.poste}</strong> (${budget.entite.libelle} — ${budget.categorie.libelle})
+       que vous avez proposé ${libelle} par la Direction Générale.</p>
+       ${motif ? `<p><em>Motif : ${motif}</em></p>` : ""}`,
+      lien,
+      "Consulter les budgets"
+    ),
+  });
+}
+
 // F-09 : alerte spécifique en cas de dépassement ou de quasi-dépassement d'un poste budgétaire.
 export async function notifierAlerteBudget(budget: BudgetAvecSuivi): Promise<void> {
   if (!budget.alerte) return;

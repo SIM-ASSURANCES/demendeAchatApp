@@ -60,9 +60,18 @@ qui horodate la réception effective des articles (`livreLe` / `livreParId`). N'
 statut d'approbation — c'est une information de suivi logistique distincte, visible par tous
 (espace RH/DG et page de suivi du demandeur), avec notification email au demandeur.
 
+**Paramétrage des budgets** (le CDC confiait le F-11 à l'Admin seul ; sur demande explicite, le
+paramétrage des postes budgétaires passe désormais par RH et DG) : le RH propose un poste
+budgétaire (`POST /api/budgets`, réservé au RH) depuis `/espace/budgets` ;
+il reste `EN_ATTENTE_VALIDATION` — non sélectionnable dans le formulaire public, non compté dans le
+suivi — jusqu'à ce que le DG le valide ou le rejette (`POST /api/budgets/:id/valider|rejeter`,
+réservé au DG, motif obligatoire pour le rejet). L'Admin conserve une vue de consultation (lecture
+seule) et la correction administrative via `PATCH /api/budgets/:id`. Notifications dédiées (F-09) :
+le DG est alerté à chaque proposition, le RH proposeur est informé de la décision.
+
 **Le [Plan de développement](Plan_de_developpement_Demande_Achat_SIM_ASSURANCES.docx) livré
-mentionne encore l'ancienne règle (RG-04, validation unique) — il n'a pas été régénéré suite à ce
-changement.**
+mentionne encore l'ancienne règle (RG-04, validation unique, et F-11 confié à l'Admin seul) — il
+n'a pas été régénéré suite à ces changements.**
 
 ## État d'avancement (voir le plan de développement)
 
@@ -108,4 +117,3 @@ Réalisé (Sprint 0/1, et parties des Sprints 2 à 7) :
 
 Restant à développer (voir §7.9 du plan) :
 - Authentification à deux facteurs, durcissement sécurité (F-16, section 10)
-- Interface d'administration des postes budgétaires (l'API existe déjà : `POST/PATCH /api/budgets`)

@@ -35,6 +35,13 @@ enum Devise {
   EUR
 }
 
+// Paramétrage des postes budgétaires : proposé par le RH, validé (ou rejeté) par le DG.
+enum StatutBudget {
+  EN_ATTENTE_VALIDATION
+  VALIDE
+  REJETE
+}
+
 model Utilisateur {
   id            String   @id @default(uuid())
   nom           String
@@ -52,6 +59,9 @@ model Utilisateur {
   demandesValidees   DemandeAchat[]  @relation("DemandeValideur")
   demandesAnnulees   DemandeAchat[]  @relation("DemandeAnnulateur")
   demandesLivrees    DemandeAchat[]  @relation("DemandeLivreur")
+  budgetsProposes    Budget[]        @relation("BudgetProposeur")
+  budgetsValides     Budget[]        @relation("BudgetValideur")
+  budgetsRejetes     Budget[]        @relation("BudgetRejeteur")
   signatures         Signature[]
   actionsAudit       JournalAudit[]
 
@@ -100,6 +110,19 @@ model Budget {
   devise         Devise   @default(XOF)
   observations   String?
   creeLe         DateTime @default(now())
+
+  // Paramétrage : proposé par le RH, validé ou rejeté par le DG. Seuls les postes VALIDE sont
+  // proposables aux demandeurs et pris en compte pour le suivi budgétaire.
+  statut         StatutBudget @default(EN_ATTENTE_VALIDATION)
+  proposeParId   String?
+  proposePar     Utilisateur? @relation("BudgetProposeur", fields: [proposeParId], references: [id])
+  valideParId    String?
+  validePar      Utilisateur? @relation("BudgetValideur", fields: [valideParId], references: [id])
+  valideLe       DateTime?
+  rejeteParId    String?
+  rejetePar      Utilisateur? @relation("BudgetRejeteur", fields: [rejeteParId], references: [id])
+  motifRejet     String?
+  rejeteLe       DateTime?
 
   demandes       DemandeAchat[]
 

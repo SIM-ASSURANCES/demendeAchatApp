@@ -12,6 +12,7 @@ import { LoginPage } from "./pages/LoginPage";
 import { ListePage } from "./pages/rh-dg/ListePage";
 import { DetailPage } from "./pages/rh-dg/DetailPage";
 import { RapportsPage } from "./pages/rh-dg/RapportsPage";
+import { BudgetsPage } from "./pages/rh-dg/BudgetsPage";
 import { AdminPage } from "./pages/admin/AdminPage";
 
 const queryClient = new QueryClient();
@@ -35,6 +36,7 @@ export default function App() {
                 <Route path="/espace/demandes" element={<ListePage />} />
                 <Route path="/espace/demandes/:id" element={<DetailPage />} />
                 <Route path="/espace/rapports" element={<RapportsPage />} />
+                <Route path="/espace/budgets" element={<BudgetsPage />} />
               </Route>
             </Route>
 
