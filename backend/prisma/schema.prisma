@@ -1,0 +1,220 @@
+// Modèle de données — voir Plan de développement §4 et Cahier des charges §8
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  RH
+  DG
+  ADMIN
+}
+
+enum StatutDemande {
+  SOUMISE
+  REJETEE
+  VALIDEE
+  ANNULEE
+}
+
+enum RoleSignataire {
+  DEMANDEUR
+  RH
+  DG
+}
+
+enum Devise {
+  XOF
+  USD
+  EUR
+}
+
+model Utilisateur {
+  id            String   @id @default(uuid())
+  nom           String
+  identifiant   String   @unique
+  motDePasseHash String
+  role          Role
+  actif         Boolean  @default(true)
+  totpSecret    String?
+  totpActif     Boolean  @default(false)
+  creeLe        DateTime @default(now())
+
+  categoriesCreees   Categorie[]     @relation("CategorieCreateur")
+  entitesCreees      Entite[]        @relation("EntiteCreateur")
+  demandesValidees   DemandeAchat[]  @relation("DemandeValideur")
+  demandesAnnulees   DemandeAchat[]  @relation("DemandeAnnulateur")
+  signatures         Signature[]
+  actionsAudit       JournalAudit[]
+
+  @@map("utilisateurs")
+}
+
+model Categorie {
+  id       String   @id @default(uuid())
+  libelle  String   @unique
+  actif    Boolean  @default(true)
+  creeLe   DateTime @default(now())
+  creeParId String?
+  creePar  Utilisateur? @relation("CategorieCreateur", fields: [creeParId], references: [id])
+
+  demandes DemandeAchat[]
+  budgets  Budget[]
+
+  @@map("categories")
+}
+
+model Entite {
+  id       String   @id @default(uuid())
+  libelle  String   @unique
+  actif    Boolean  @default(true)
+  creeLe   DateTime @default(now())
+  creeParId String?
+  creePar  Utilisateur? @relation("EntiteCreateur", fields: [creeParId], references: [id])
+
+  demandes DemandeAchat[]
+  budgets  Budget[]
+
+  @@map("entites")
+}
+
+// Poste budgétaire pour une entité, une catégorie et une période donnée (CDC §7.3)
+model Budget {
+  id             String   @id @default(uuid())
+  poste          String
+  entiteId       String
+  entite         Entite   @relation(fields: [entiteId], references: [id])
+  categorieId    String
+  categorie      Categorie @relation(fields: [categorieId], references: [id])
+  periodeDebut   DateTime
+  periodeFin     DateTime
+  montantAlloue  Decimal  @db.Decimal(14, 2)
+  devise         Devise   @default(XOF)
+  observations   String?
+  creeLe         DateTime @default(now())
+
+  demandes       DemandeAchat[]
+
+  @@map("budgets")
+}
+
+model DemandeAchat {
+  id                String        @id @default(uuid())
+  numero            String        @unique // format DA-AAAA-NNNNN (RG-02)
+
+  // Demandeur (F-01, non authentifié — suivi par lien)
+  demandeurNom      String
+  demandeurFonction String?
+  demandeurEmail    String
+  demandeurTelephone String?
+  lienSuiviToken    String        @unique
+
+  // En-tête (CDC §7.1)
+  entiteId          String
+  entite            Entite        @relation(fields: [entiteId], references: [id])
+  motif             String
+  dateLivraisonSouhaitee DateTime
+
+  categorieId       String
+  categorie         Categorie     @relation(fields: [categorieId], references: [id])
+  budgetId          String?
+  budget            Budget?       @relation(fields: [budgetId], references: [id])
+
+  devise            Devise        @default(XOF)
+  tauxChange         Decimal?     @db.Decimal(12, 6)
+  montantTotal       Decimal      @default(0) @db.Decimal(14, 2)
+
+  statut             StatutDemande @default(SOUMISE)
+
+  // Rejet (RG-08)
+  motifRejet         String?
+  rejeteLe            DateTime?
+
+  // Validation (RG-04, RG-05)
+  valideLe            DateTime?
+  valideParId         String?
+  validePar           Utilisateur? @relation("DemandeValideur", fields: [valideParId], references: [id])
+
+  // Annulation (F-05, RG-07)
+  annuleLe            DateTime?
+  annuleParId         String?
+  annulePar            Utilisateur? @relation("DemandeAnnulateur", fields: [annuleParId], references: [id])
+  motifAnnulationCategorie String?
+  motifAnnulationCommentaire String?
+
+  creeLe              DateTime     @default(now())
+  majLe                DateTime     @updatedAt
+
+  lignes               LigneArticle[]
+  signatures           Signature[]
+  piecesJointes        PieceJointe[]
+  journalAudit         JournalAudit[]
+
+  @@index([statut])
+  @@index([entiteId])
+  @@index([categorieId])
+  @@map("demandes_achat")
+}
+
+model LigneArticle {
+  id            String   @id @default(uuid())
+  demandeId     String
+  demande       DemandeAchat @relation(fields: [demandeId], references: [id], onDelete: Cascade)
+  libelle       String
+  quantite      Decimal  @db.Decimal(10, 2)
+  prixUnitaire  Decimal  @db.Decimal(14, 2)
+  total         Decimal  @db.Decimal(14, 2)
+  ordre         Int      @default(0)
+
+  @@map("lignes_article")
+}
+
+// Case de signature électronique (F-03) — jamais saisie manuellement
+model Signature {
+  id            String   @id @default(uuid())
+  demandeId     String
+  demande       DemandeAchat @relation(fields: [demandeId], references: [id], onDelete: Cascade)
+  role          RoleSignataire
+  nom           String
+  horodatage    DateTime @default(now())
+  utilisateurId String?
+  utilisateur   Utilisateur? @relation(fields: [utilisateurId], references: [id])
+  adresseIp     String?
+  sessionId     String?
+
+  @@map("signatures")
+}
+
+model PieceJointe {
+  id            String   @id @default(uuid())
+  demandeId     String
+  demande       DemandeAchat @relation(fields: [demandeId], references: [id], onDelete: Cascade)
+  nomFichier    String
+  cheminFichier String
+  typeDocument  String
+  tailleOctets  Int
+  mimeType      String
+  deposeLe      DateTime @default(now())
+
+  @@map("pieces_jointes")
+}
+
+// Journal d'audit inaltérable (F-10, RG-12) — append-only, aucune mise à jour ni suppression applicative
+model JournalAudit {
+  id            String   @id @default(uuid())
+  demandeId     String?
+  demande       DemandeAchat? @relation(fields: [demandeId], references: [id])
+  action        String
+  auteurId      String?
+  auteur        Utilisateur? @relation(fields: [auteurId], references: [id])
+  auteurLibelle String   // ex. "Demandeur" quand non authentifié
+  detail        Json?
+  horodatage    DateTime @default(now())
+
+  @@index([demandeId])
+  @@map("journal_audit")
+}

@@ -1,0 +1,16 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+  background-color: #f4f6f9;
+  color: #1f2937;
+}
+
+.champ {
+  @apply w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-[#1F3864] focus:outline-none focus:ring-1 focus:ring-[#1F3864];
+}
