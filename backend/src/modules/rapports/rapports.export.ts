@@ -19,7 +19,7 @@ export async function genererClasseurExcel(tableau: TableauDeBord, sousTitre: st
   synthese.addRow([sousTitre, ""]);
   synthese.addRow([]);
   synthese.addRow(["Nombre de demandes", tableau.nombreDemandes]);
-  synthese.addRow(["Montant total", tableau.totalGeneral]);
+  synthese.addRow(["Montant total (consolidé en XOF)", tableau.totalGeneral]);
 
   const feuille = (nom: string, colonnes: { header: string; key: string; width?: number }[]) => {
     const ws = classeur.addWorksheet(nom);
@@ -55,6 +55,8 @@ export async function genererClasseurExcel(tableau: TableauDeBord, sousTitre: st
     { header: "Entité", key: "entite", width: 24 },
     { header: "Catégorie", key: "categorie", width: 24 },
     { header: "Montant", key: "montantTotal", width: 16 },
+    { header: "Devise", key: "devise", width: 10 },
+    { header: "Montant (XOF)", key: "montantTotalXOF", width: 16 },
     { header: "Statut", key: "statut", width: 14 },
     { header: "Date de validation", key: "valideLe", width: 20 },
   ]);

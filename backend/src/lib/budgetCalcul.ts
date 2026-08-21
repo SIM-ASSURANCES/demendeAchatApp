@@ -37,10 +37,10 @@ async function calculerSuivi(budget: {
 }): Promise<BudgetAvecSuivi> {
   const agregat = await prisma.demandeAchat.aggregate({
     where: { budgetId: budget.id, statut: StatutDemande.VALIDEE },
-    _sum: { montantTotal: true },
+    _sum: { montantTotalXOF: true },
   });
   const montantAlloue = Number(budget.montantAlloue);
-  const realise = Number(agregat._sum.montantTotal ?? 0);
+  const realise = Number(agregat._sum.montantTotalXOF ?? 0);
   const disponible = montantAlloue - realise;
   const pourcentageConsomme = montantAlloue > 0 ? realise / montantAlloue : 0;
 

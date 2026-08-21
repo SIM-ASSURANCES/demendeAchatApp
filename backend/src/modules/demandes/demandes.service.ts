@@ -44,6 +44,13 @@ function calculerLignesEtTotal(lignes: LigneArticleInput[]) {
   return { lignesCalculees, montantTotal };
 }
 
+// F-15 : consolidation en XOF (devise de référence) via le taux de change saisi, pour permettre
+// l'agrégation budgétaire et le reporting sur des demandes exprimées dans des devises différentes.
+function calculerMontantXOF(montantTotal: number, devise: string, tauxChange?: number | null): number {
+  if (devise === "XOF") return montantTotal;
+  return Math.round(montantTotal * (tauxChange ?? 1) * 100) / 100;
+}
+
 export async function creerDemande(input: CreerDemandeInput, ip?: string) {
   if (input.lignes.length === 0) {
     throw new ApiError(400, "Au moins une ligne d'article est requise.");
@@ -52,6 +59,8 @@ export async function creerDemande(input: CreerDemandeInput, ip?: string) {
   const numero = await genererNumeroDemande();
   const lienSuiviToken = nanoid(32);
   const { lignesCalculees, montantTotal } = calculerLignesEtTotal(input.lignes);
+  const devise = input.devise ?? "XOF";
+  const montantTotalXOF = calculerMontantXOF(montantTotal, devise, input.tauxChange);
 
   const demande = await prisma.demandeAchat.create({
     data: {
@@ -66,9 +75,10 @@ export async function creerDemande(input: CreerDemandeInput, ip?: string) {
       dateLivraisonSouhaitee: input.dateLivraisonSouhaitee,
       categorieId: input.categorieId,
       budgetId: input.budgetId,
-      devise: input.devise ?? "XOF",
+      devise,
       tauxChange: input.tauxChange,
       montantTotal,
+      montantTotalXOF,
       statut: StatutDemande.SOUMISE,
       lignes: { create: lignesCalculees },
       // Case "Demandeur" du pied de fiche : renseignée automatiquement à la soumission (CDC §7.4).
@@ -124,12 +134,23 @@ export async function modifierDemandeParToken(
   if (input.categorieId !== undefined) data.categorieId = input.categorieId;
   if (input.budgetId !== undefined) data.budgetId = input.budgetId;
   if (input.dateLivraisonSouhaitee !== undefined) data.dateLivraisonSouhaitee = input.dateLivraisonSouhaitee;
+  if (input.devise !== undefined) data.devise = input.devise;
+  if (input.tauxChange !== undefined) data.tauxChange = input.tauxChange;
 
+  let montantTotal = Number(demande.montantTotal);
   if (input.lignes) {
-    const { lignesCalculees, montantTotal } = calculerLignesEtTotal(input.lignes);
+    const calcul = calculerLignesEtTotal(input.lignes);
     await prisma.ligneArticle.deleteMany({ where: { demandeId: demande.id } });
-    data.montantTotal = montantTotal;
-    data.lignes = { create: lignesCalculees };
+    data.montantTotal = calcul.montantTotal;
+    data.lignes = { create: calcul.lignesCalculees };
+    montantTotal = calcul.montantTotal;
+  }
+
+  // F-15 : le montant consolidé en XOF est recalculé dès que le total, la devise ou le taux change.
+  if (input.lignes || input.devise !== undefined || input.tauxChange !== undefined) {
+    const devise = input.devise ?? demande.devise;
+    const tauxChange = input.tauxChange !== undefined ? input.tauxChange : demande.tauxChange ? Number(demande.tauxChange) : undefined;
+    data.montantTotalXOF = calculerMontantXOF(montantTotal, devise, tauxChange);
   }
 
   const misAJour = await prisma.demandeAchat.update({

@@ -11,6 +11,7 @@ interface DemandeListe {
   demandeurNom: string;
   motif: string;
   montantTotal: string;
+  devise: string;
   creeLe: string;
   entite: { libelle: string };
   categorie: { libelle: string };
@@ -88,7 +89,7 @@ export function ListePage() {
                 <td className="px-4 py-2">{d.demandeurNom}</td>
                 <td className="px-4 py-2">{d.entite.libelle}</td>
                 <td className="px-4 py-2">{d.categorie.libelle}</td>
-                <td className="px-4 py-2">{Number(d.montantTotal).toLocaleString("fr-FR")}</td>
+                <td className="px-4 py-2">{Number(d.montantTotal).toLocaleString("fr-FR")} {d.devise}</td>
                 <td className="px-4 py-2"><StatutBadge statut={d.statut} /></td>
                 <td className="px-4 py-2 text-gray-500">{new Date(d.creeLe).toLocaleDateString("fr-FR")}</td>
               </tr>

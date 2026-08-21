@@ -36,7 +36,9 @@ function agregerParCle<T>(
   for (const demande of demandes) {
     const { id, libelle } = cle(demande);
     const entree = table.get(id) ?? { id, libelle, total: 0, nombre: 0 };
-    entree.total += Number(demande.montantTotal);
+    // F-15 : agrégation en XOF (devise de référence) — des demandes en devises différentes ne
+    // peuvent pas être additionnées dans leur montant d'origine.
+    entree.total += Number(demande.montantTotalXOF);
     entree.nombre += 1;
     table.set(id, entree);
   }
@@ -92,7 +94,7 @@ function agregerParPeriode(
     const date = demande.valideLe ?? demande.creeLe;
     const { cle, libelle } = cléPeriode(date, granularite);
     const entree = table.get(cle) ?? { periode: libelle, total: 0, nombre: 0 };
-    entree.total += Number(demande.montantTotal);
+    entree.total += Number(demande.montantTotalXOF);
     entree.nombre += 1;
     table.set(cle, entree);
   }
@@ -109,7 +111,7 @@ export async function construireTableauDeBord(filtres: FiltresRapport, granulari
   const parEntite = agregerParCle(demandes, (d) => ({ id: d.entiteId, libelle: d.entite.libelle }));
   const parPeriode = agregerParPeriode(demandes, granularite);
 
-  const totalGeneral = demandes.reduce((somme, d) => somme + Number(d.montantTotal), 0);
+  const totalGeneral = demandes.reduce((somme, d) => somme + Number(d.montantTotalXOF), 0);
 
   return {
     totalGeneral,
@@ -124,6 +126,8 @@ export async function construireTableauDeBord(filtres: FiltresRapport, granulari
       entite: d.entite.libelle,
       categorie: d.categorie.libelle,
       montantTotal: Number(d.montantTotal),
+      devise: d.devise,
+      montantTotalXOF: Number(d.montantTotalXOF),
       statut: d.statut,
       valideLe: d.valideLe,
     })),

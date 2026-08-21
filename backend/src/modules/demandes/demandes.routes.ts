@@ -37,7 +37,7 @@ const ligneSchema = z.object({
   prixUnitaire: z.coerce.number().nonnegative(),
 });
 
-const creationSchema = z.object({
+const champsDemandeSchema = z.object({
   demandeurNom: z.string().min(1).max(160),
   demandeurFonction: z.string().max(120).optional(),
   demandeurEmail: z.string().email(),
@@ -51,6 +51,18 @@ const creationSchema = z.object({
   tauxChange: z.coerce.number().positive().optional(),
   lignes: z.array(ligneSchema).min(1),
 });
+
+// F-15 : un taux de change de référence est obligatoire dès lors que la demande n'est pas en XOF,
+// seule devise ne nécessitant pas de consolidation comptable.
+function validerTauxChange(d: { devise?: Devise; tauxChange?: number }): boolean {
+  return d.devise === undefined || d.devise === "XOF" || d.tauxChange !== undefined;
+}
+const messageTauxChange: { message: string; path: string[] } = {
+  message: "Un taux de change est requis pour une demande dans une devise autre que le XOF.",
+  path: ["tauxChange"],
+};
+
+const creationSchema = champsDemandeSchema.refine(validerTauxChange, messageTauxChange);
 
 // --- F-01 : formulaire public de demande d'achat ------------------------------------------------
 
@@ -78,9 +90,11 @@ demandesRouter.get("/suivi/:token", async (req, res, next) => {
   }
 });
 
+const modificationSchema = champsDemandeSchema.partial().refine(validerTauxChange, messageTauxChange);
+
 demandesRouter.patch("/suivi/:token", async (req, res, next) => {
   try {
-    const parsed = creationSchema.partial().safeParse(req.body);
+    const parsed = modificationSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ message: parsed.error.issues[0]?.message ?? "Données invalides." });
     }
@@ -117,7 +131,14 @@ demandesRouter.get("/verifier/:numero", async (req, res, next) => {
     const code = String(req.query.code ?? "");
     const demande = await prisma.demandeAchat.findUnique({
       where: { numero: req.params.numero },
-      select: { numero: true, statut: true, montantTotal: true, valideLe: true, entite: { select: { libelle: true } } },
+      select: {
+        numero: true,
+        statut: true,
+        montantTotal: true,
+        devise: true,
+        valideLe: true,
+        entite: { select: { libelle: true } },
+      },
     });
 
     if (!demande || !code || !verifierCode(demande.numero, demande.statut, code)) {
@@ -129,6 +150,7 @@ demandesRouter.get("/verifier/:numero", async (req, res, next) => {
       numero: demande.numero,
       statut: demande.statut,
       montantTotal: demande.montantTotal,
+      devise: demande.devise,
       entite: demande.entite.libelle,
       valideLe: demande.valideLe,
     });

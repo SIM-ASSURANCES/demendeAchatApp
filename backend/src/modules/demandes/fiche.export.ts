@@ -2,10 +2,10 @@ import PDFDocument from "pdfkit";
 import QRCode from "qrcode";
 import type { Response } from "express";
 import { StatutDemande } from "@prisma/client";
-import { prisma } from "../../lib/prisma";
 import { env } from "../../config/env";
 import { urlVerification } from "../../lib/verification";
 import { formatMontantPdf } from "../../lib/formatMontantPdf";
+import { calculerUnBudgetAvecSuivi } from "../../lib/budgetCalcul";
 
 const NAVY = "#004B9C";
 const GRIS = "#666666";
@@ -23,6 +23,8 @@ interface DemandeFiche {
   dateLivraisonSouhaitee: Date;
   devise: string;
   montantTotal: unknown;
+  montantTotalXOF: unknown;
+  tauxChange: unknown;
   creeLe: Date;
   entite: { libelle: string };
   categorie: { libelle: string };
@@ -43,16 +45,9 @@ const LABEL_STATUT: Record<string, string> = {
 // la fiche papier (en-tête, tableau des articles, tableau budgétaire, cases de signature), avec
 // les signatures électroniques effectivement apposées et un QR code de vérification d'authenticité.
 export async function genererFichePdf(res: Response, demande: DemandeFiche) {
-  let budgetSuivi: { montantAlloue: number; realise: number; disponible: number } | null = null;
-  if (demande.budgetId && demande.budget) {
-    const agregat = await prisma.demandeAchat.aggregate({
-      where: { budgetId: demande.budgetId, statut: StatutDemande.VALIDEE },
-      _sum: { montantTotal: true },
-    });
-    const montantAlloue = Number(demande.budget.montantAlloue);
-    const realise = Number(agregat._sum.montantTotal ?? 0);
-    budgetSuivi = { montantAlloue, realise, disponible: montantAlloue - realise };
-  }
+  // F-15 : le suivi budgétaire est consolidé en XOF (calculerUnBudgetAvecSuivi utilise
+  // montantTotalXOF), cohérent avec le module de reporting (F-06).
+  const budgetSuivi = demande.budgetId ? await calculerUnBudgetAvecSuivi(demande.budgetId) : null;
 
   const urlQr = urlVerification(demande.numero, demande.statut, env.frontendUrl);
   const qrDataUrl = await QRCode.toDataURL(urlQr, { margin: 0, width: 200 });
@@ -156,7 +151,23 @@ export async function genererFichePdf(res: Response, demande: DemandeFiche) {
   doc.text(`${formatMontantPdf(Number(demande.montantTotal))} ${demande.devise}`, marge + colonnes[0].largeur + colonnes[1].largeur + colonnes[2].largeur + 6, y + 6, {
     width: colonnes[3].largeur - 12,
   });
-  y += 34;
+  y += 22;
+
+  // F-15 : équivalent consolidé en XOF (devise de référence) pour toute demande en devise étrangère.
+  if (demande.devise !== "XOF") {
+    doc
+      .fontSize(8)
+      .font("Helvetica-Oblique")
+      .fillColor(GRIS)
+      .text(
+        `Équivalent : ${formatMontantPdf(Number(demande.montantTotalXOF))} XOF (taux de change de référence : ${Number(demande.tauxChange ?? 1)})`,
+        marge,
+        y,
+        { width: largeurUtile, align: "right" }
+      );
+    y += 14;
+  }
+  y += 12;
 
   // --- Tableau budgétaire (CDC §7.3) ---
   if (budgetSuivi && demande.budget) {

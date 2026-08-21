@@ -125,9 +125,13 @@ model DemandeAchat {
   budgetId          String?
   budget            Budget?       @relation(fields: [budgetId], references: [id])
 
+  // F-15 : saisie dans la devise d'origine (montantTotal), consolidation comptable en XOF via un
+  // taux de change de référence (montantTotalXOF) — utilisé pour les rapports et le suivi budgétaire,
+  // qui ne peuvent additionner des montants exprimés dans des devises différentes.
   devise            Devise        @default(XOF)
   tauxChange         Decimal?     @db.Decimal(12, 6)
   montantTotal       Decimal      @default(0) @db.Decimal(14, 2)
+  montantTotalXOF    Decimal      @default(0) @db.Decimal(14, 2)
 
   statut             StatutDemande @default(SOUMISE)
 

@@ -9,6 +9,7 @@ interface ResultatVerification {
   numero?: string;
   statut?: string;
   montantTotal?: string;
+  devise?: string;
   entite?: string;
   valideLe?: string | null;
   message?: string;
@@ -69,7 +70,7 @@ export function VerificationPage() {
             </div>
             <div className="flex items-center justify-between">
               <dt className="text-gray-500">Montant total</dt>
-              <dd className="font-medium">{Number(data.montantTotal).toLocaleString("fr-FR")} XOF</dd>
+              <dd className="font-medium">{Number(data.montantTotal).toLocaleString("fr-FR")} {data.devise}</dd>
             </div>
             {data.valideLe && (
               <div className="flex items-center justify-between">

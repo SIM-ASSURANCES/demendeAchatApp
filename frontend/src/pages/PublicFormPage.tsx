@@ -12,21 +12,29 @@ const ligneSchema = z.object({
   prixUnitaire: z.coerce.number().nonnegative("Prix invalide"),
 });
 
-const formSchema = z.object({
-  demandeurNom: z.string().min(1, "Nom requis"),
-  demandeurFonction: z.string().optional(),
-  demandeurEmail: z.string().email("Email invalide"),
-  demandeurTelephone: z.string().optional(),
-  entiteId: z.string().min(1, "Entité requise"),
-  categorieId: z.string().min(1, "Catégorie requise"),
-  budgetId: z
-    .string()
-    .optional()
-    .transform((v) => (v ? v : undefined)),
-  motif: z.string().min(1, "Motif requis"),
-  dateLivraisonSouhaitee: z.string().min(1, "Date requise"),
-  lignes: z.array(ligneSchema).min(1, "Ajoutez au moins un article"),
-});
+const formSchema = z
+  .object({
+    demandeurNom: z.string().min(1, "Nom requis"),
+    demandeurFonction: z.string().optional(),
+    demandeurEmail: z.string().email("Email invalide"),
+    demandeurTelephone: z.string().optional(),
+    entiteId: z.string().min(1, "Entité requise"),
+    categorieId: z.string().min(1, "Catégorie requise"),
+    budgetId: z
+      .string()
+      .optional()
+      .transform((v) => (v ? v : undefined)),
+    motif: z.string().min(1, "Motif requis"),
+    dateLivraisonSouhaitee: z.string().min(1, "Date requise"),
+    devise: z.enum(["XOF", "USD", "EUR"]),
+    tauxChange: z.coerce.number().positive("Taux de change invalide").optional(),
+    lignes: z.array(ligneSchema).min(1, "Ajoutez au moins un article"),
+  })
+  // F-15 : taux de change de référence obligatoire pour toute devise autre que le XOF.
+  .refine((d) => d.devise === "XOF" || d.tauxChange !== undefined, {
+    message: "Taux de change requis pour cette devise",
+    path: ["tauxChange"],
+  });
 
 type FormInput = z.input<typeof formSchema>;
 type FormOutput = z.output<typeof formSchema>;
@@ -67,13 +75,14 @@ export function PublicFormPage() {
     formState: { errors, isSubmitting },
   } = useForm<FormInput, unknown, FormOutput>({
     resolver: zodResolver(formSchema),
-    defaultValues: { lignes: [{ libelle: "", quantite: 1, prixUnitaire: 0 }] },
+    defaultValues: { devise: "XOF", lignes: [{ libelle: "", quantite: 1, prixUnitaire: 0 }] },
   });
 
   const { fields, append, remove } = useFieldArray({ control, name: "lignes" });
   const lignes = watch("lignes");
   const entiteChoisie = watch("entiteId");
   const categorieChoisie = watch("categorieId");
+  const deviseChoisie = watch("devise");
   const totalGeneral = (lignes ?? []).reduce(
     (somme, l) => somme + (Number(l?.quantite) || 0) * (Number(l?.prixUnitaire) || 0),
     0
@@ -170,6 +179,21 @@ export function PublicFormPage() {
               ))}
             </select>
           </Champ>
+          <Champ label="Devise" erreur={errors.devise?.message}>
+            <select className="champ" {...register("devise")}>
+              <option value="XOF">Franc CFA (XOF)</option>
+              <option value="USD">Dollar américain (USD)</option>
+              <option value="EUR">Euro (EUR)</option>
+            </select>
+          </Champ>
+          {deviseChoisie !== "XOF" && (
+            <Champ
+              label={`Taux de change de référence (1 ${deviseChoisie} = ? XOF)`}
+              erreur={errors.tauxChange?.message}
+            >
+              <input className="champ" type="number" step="0.000001" min="0" {...register("tauxChange")} />
+            </Champ>
+          )}
         </div>
         <Champ label="Motif de l'achat" erreur={errors.motif?.message}>
           <textarea className="champ" rows={3} {...register("motif")} />
@@ -233,7 +257,7 @@ export function PublicFormPage() {
         <div className="flex justify-end border-t pt-3">
           <div className="text-right">
             <span className="text-sm text-gray-500">Total général</span>
-            <p className="text-xl font-bold text-[#004B9C]">{totalGeneral.toLocaleString("fr-FR")} XOF</p>
+            <p className="text-xl font-bold text-[#004B9C]">{totalGeneral.toLocaleString("fr-FR")} {deviseChoisie}</p>
           </div>
         </div>
       </section>

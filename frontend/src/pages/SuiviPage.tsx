@@ -18,6 +18,7 @@ interface Demande {
   demandeurNom: string;
   motif: string;
   montantTotal: string;
+  devise: string;
   dateLivraisonSouhaitee: string;
   motifRejet?: string | null;
   motifAnnulationCommentaire?: string | null;
@@ -83,7 +84,7 @@ export function SuiviPage() {
           <div><dt className="text-gray-500">Entité bénéficiaire</dt><dd>{demande.entite.libelle}</dd></div>
           <div><dt className="text-gray-500">Catégorie</dt><dd>{demande.categorie.libelle}</dd></div>
           <div><dt className="text-gray-500">Date de livraison souhaitée</dt><dd>{new Date(demande.dateLivraisonSouhaitee).toLocaleDateString("fr-FR")}</dd></div>
-          <div><dt className="text-gray-500">Montant total</dt><dd className="font-semibold">{Number(demande.montantTotal).toLocaleString("fr-FR")} XOF</dd></div>
+          <div><dt className="text-gray-500">Montant total</dt><dd className="font-semibold">{Number(demande.montantTotal).toLocaleString("fr-FR")} {demande.devise}</dd></div>
         </dl>
         <p className="mt-3 text-sm"><span className="text-gray-500">Motif :</span> {demande.motif}</p>
       </section>

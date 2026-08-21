@@ -73,8 +73,12 @@ Réalisé (Sprint 0/1, et parties des Sprints 2 à 7) :
   `.env`), les emails sont générés et journalisés en console (`[email:dev] ...`) sans envoi réseau
   réel — pratique par défaut pour développer sans compte SMTP. Nécessite un email par compte RH/DG
   (champ ajouté au modèle `Utilisateur`, requis à la création dans l'espace Admin)
+- **Gestion multi-devises (F-15)** : saisie en XOF, USD ou EUR sur le formulaire public, avec taux
+  de change de référence obligatoire dès qu'une devise autre que le XOF est choisie. Consolidation
+  automatique en XOF (`montantTotalXOF`, devise de référence) pour le suivi budgétaire (RG-10) et le
+  reporting (F-06), qui ne peuvent additionner des montants de devises différentes ; la fiche
+  officielle (F-07) affiche le montant dans sa devise d'origine avec l'équivalent XOF en note
 
 Restant à développer (voir §7.9 du plan) :
-- Gestion multi-devises complète (F-15) — le champ existe en base, la conversion n'est pas appliquée
 - Authentification à deux facteurs, durcissement sécurité (F-16, section 10)
 - Interface d'administration des postes budgétaires (l'API existe déjà : `POST/PATCH /api/budgets`)
