@@ -30,6 +30,41 @@ npm run dev         # http://localhost:5183
 
 Compte administrateur créé par le seed : identifiant `admin`, mot de passe `ChangezMoi#2026` — **à changer immédiatement**.
 
+## Déploiement production (Dokploy / Traefik)
+
+Cible : `demandeachat.mysimassurances.com`. Fichiers : `backend/Dockerfile`, `frontend/Dockerfile`
+(+ `frontend/nginx.conf`), `docker-compose.prod.yml`, `.env.production.example`. Les deux
+Dockerfiles ont été buildés et testés de bout en bout localement (migrations, seed idempotent,
+connexion admin, routage SPA) avant livraison — voir le détail dans l'historique Git.
+
+**1. Construire et pousser les images** (aucun pipeline CI n'existe encore pour ce dépôt — à faire
+manuellement ou via un futur workflow GitHub Actions) :
+
+```bash
+docker build -t ghcr.io/sim-assurances/demandeachatapp-backend:latest backend
+docker push ghcr.io/sim-assurances/demandeachatapp-backend:latest
+
+# VITE_API_URL est figé dans le bundle au moment du build (Vite), pas au runtime du conteneur —
+# ne jamais la définir seulement dans docker-compose.prod.yml, ça n'aurait aucun effet.
+docker build -t ghcr.io/sim-assurances/demandeachatapp-frontend:latest \
+  --build-arg VITE_API_URL=https://demandeachat.mysimassurances.com/api frontend
+docker push ghcr.io/sim-assurances/demandeachatapp-frontend:latest
+```
+
+**2. Variables d'environnement** : copier `.env.production.example`, renseigner les vraies valeurs
+(secrets générés avec `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`),
+et les injecter dans Dokploy (onglet Environment du projet) — jamais commitées. Un jeu de secrets a
+déjà été généré localement dans `.env.production` (gitignored, non commité) ; à transférer dans
+Dokploy puis à supprimer ou sécuriser sur ce poste.
+
+**3. Déployer** `docker-compose.prod.yml` sur Dokploy (le réseau `dokploy-network` doit déjà
+exister — il est déclaré `external`). Le conteneur backend applique les migrations et rejoue le
+seed (idempotent) à chaque démarrage, avant de lancer le serveur — aucune étape manuelle après le
+premier déploiement, y compris pour les migrations futures.
+
+**Prérequis DNS** : `demandeachat.mysimassurances.com` doit pointer vers l'hôte Dokploy/Traefik —
+non vérifié ici, à confirmer côté infrastructure avant le premier déploiement.
+
 ## Charte graphique
 
 Le design applique la charte graphique officielle SIM ASSURANCES (`DOC SIMAS/CHARTE GRAPHIQUE SIM ASSURANCE CI.pdf`) :

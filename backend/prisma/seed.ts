@@ -3,16 +3,26 @@ import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
+// En production, le compte administrateur initial est piloté par variables d'environnement
+// (SUPER_ADMIN_*, convention déjà utilisée sur les autres services SIM ASSURANCES) plutôt que par
+// un identifiant/mot de passe fixe en dur — évite de déployer avec des identifiants connus.
+// Idempotent (upsert avec update: {}) : ne réécrit jamais un admin déjà présent, donc peut être
+// rejoué sans risque à chaque démarrage du conteneur.
+const ADMIN_NOM = process.env.SUPER_ADMIN_NOM ?? "Administrateur SIM ASSURANCES";
+const ADMIN_IDENTIFIANT = process.env.SUPER_ADMIN_IDENTIFIANT ?? "admin";
+const ADMIN_EMAIL = process.env.SUPER_ADMIN_EMAIL ?? "admin@sim-assurances.example";
+const ADMIN_MOT_DE_PASSE = process.env.SUPER_ADMIN_PASSWORD ?? "ChangezMoi#2026";
+
 async function main() {
-  const motDePasseHash = await bcrypt.hash("ChangezMoi#2026", 12);
+  const motDePasseHash = await bcrypt.hash(ADMIN_MOT_DE_PASSE, 12);
 
   await prisma.utilisateur.upsert({
-    where: { identifiant: "admin" },
+    where: { identifiant: ADMIN_IDENTIFIANT },
     update: {},
     create: {
-      nom: "Administrateur SIM ASSURANCES",
-      identifiant: "admin",
-      email: "admin@sim-assurances.example",
+      nom: ADMIN_NOM,
+      identifiant: ADMIN_IDENTIFIANT,
+      email: ADMIN_EMAIL,
       motDePasseHash,
       role: "ADMIN",
     },
@@ -38,7 +48,11 @@ async function main() {
   });
 
   console.log("Données de référence initialisées.");
-  console.log("Compte administrateur : identifiant=admin, mot de passe=ChangezMoi#2026 (à changer immédiatement).");
+  if (!process.env.SUPER_ADMIN_PASSWORD) {
+    console.log(`Compte administrateur : identifiant=${ADMIN_IDENTIFIANT}, mot de passe=${ADMIN_MOT_DE_PASSE} (à changer immédiatement).`);
+  } else {
+    console.log(`Compte administrateur initialisé : identifiant=${ADMIN_IDENTIFIANT}.`);
+  }
 }
 
 main()

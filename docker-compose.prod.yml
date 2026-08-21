@@ -1,0 +1,82 @@
+version: "3.8"
+
+services:
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: demandeachat
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: demandeachat
+    volumes:
+      - demandeachat-db-data:/var/lib/postgresql/data
+    networks:
+      - dokploy-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U demandeachat -d demandeachat"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    image: ghcr.io/sim-assurances/demandeachatapp-backend:latest
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgresql://demandeachat:${POSTGRES_PASSWORD}@db:5432/demandeachat"
+      JWT_ACCESS_SECRET: "${JWT_ACCESS_SECRET}"
+      JWT_REFRESH_SECRET: "${JWT_REFRESH_SECRET}"
+      JWT_ACCESS_EXPIRES: "15m"
+      JWT_REFRESH_EXPIRES: "7d"
+      VERIFICATION_SECRET: "${VERIFICATION_SECRET}"
+      NODE_ENV: production
+      PORT: 4000
+      FRONTEND_URL: "https://demandeachat.mysimassurances.com"
+      UPLOAD_DIR: "uploads"
+      MAX_UPLOAD_MB: 10
+      SMTP_HOST: "${SMTP_HOST}"
+      SMTP_PORT: "${SMTP_PORT}"
+      SMTP_USER: "${SMTP_USER}"
+      SMTP_PASSWORD: "${SMTP_PASSWORD}"
+      SMTP_FROM: "SIM ASSURANCES <no-reply@mysimassurances.com>"
+      SUPER_ADMIN_NOM: "${SUPER_ADMIN_NOM}"
+      SUPER_ADMIN_IDENTIFIANT: "${SUPER_ADMIN_IDENTIFIANT}"
+      SUPER_ADMIN_EMAIL: "${SUPER_ADMIN_EMAIL}"
+      SUPER_ADMIN_PASSWORD: "${SUPER_ADMIN_PASSWORD}"
+    volumes:
+      - demandeachat-uploads:/app/uploads
+    networks:
+      - dokploy-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.demandeachat-backend.rule=Host(`demandeachat.mysimassurances.com`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.demandeachat-backend.entrypoints=websecure"
+      - "traefik.http.routers.demandeachat-backend.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.demandeachat-backend.priority=10"
+      - "traefik.http.services.demandeachat-backend.loadbalancer.server.port=4000"
+
+  frontend:
+    # VITE_API_URL est figé dans ce build (`--build-arg VITE_API_URL=https://demandeachat.mysimassurances.com/api`) —
+    # inutile de le redéfinir ici en environment, Vite l'a déjà compilé en dur dans le bundle JS.
+    image: ghcr.io/sim-assurances/demandeachatapp-frontend:latest
+    restart: unless-stopped
+    networks:
+      - dokploy-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.demandeachat-frontend.rule=Host(`demandeachat.mysimassurances.com`)"
+      - "traefik.http.routers.demandeachat-frontend.entrypoints=websecure"
+      - "traefik.http.routers.demandeachat-frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.demandeachat-frontend.priority=1"
+      - "traefik.http.services.demandeachat-frontend.loadbalancer.server.port=80"
+
+networks:
+  dokploy-network:
+    external: true
+
+volumes:
+  demandeachat-db-data: {}
+  demandeachat-uploads: {}
