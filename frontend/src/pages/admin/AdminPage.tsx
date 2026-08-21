@@ -12,6 +12,7 @@ interface Utilisateur {
   id: string;
   nom: string;
   identifiant: string;
+  email: string | null;
   role: "RH" | "DG" | "ADMIN";
   actif: boolean;
 }
@@ -123,6 +124,7 @@ function ComptesAdmin() {
   const queryClient = useQueryClient();
   const [nom, setNom] = useState("");
   const [identifiant, setIdentifiant] = useState("");
+  const [email, setEmail] = useState("");
   const [motDePasse, setMotDePasse] = useState("");
   const [role, setRole] = useState<"RH" | "DG" | "ADMIN">("RH");
 
@@ -132,10 +134,11 @@ function ComptesAdmin() {
   });
 
   const creer = useMutation({
-    mutationFn: async () => api.post("/utilisateurs", { nom, identifiant, motDePasse, role }),
+    mutationFn: async () => api.post("/utilisateurs", { nom, identifiant, email, motDePasse, role }),
     onSuccess: () => {
       setNom("");
       setIdentifiant("");
+      setEmail("");
       setMotDePasse("");
       queryClient.invalidateQueries({ queryKey: ["utilisateurs"] });
     },
@@ -149,7 +152,7 @@ function ComptesAdmin() {
   return (
     <div className="space-y-4">
       <form
-        className="grid grid-cols-1 gap-3 rounded-lg border bg-white p-5 sm:grid-cols-4"
+        className="grid grid-cols-1 gap-3 rounded-lg border bg-white p-5 sm:grid-cols-5"
         onSubmit={(e) => {
           e.preventDefault();
           creer.mutate();
@@ -157,6 +160,14 @@ function ComptesAdmin() {
       >
         <input className="champ" placeholder="Nom complet" value={nom} onChange={(e) => setNom(e.target.value)} required />
         <input className="champ" placeholder="Identifiant" value={identifiant} onChange={(e) => setIdentifiant(e.target.value)} required />
+        <input
+          className="champ"
+          placeholder="Email (notifications)"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
         <input
           className="champ"
           placeholder="Mot de passe (12+ caractères)"
@@ -170,7 +181,7 @@ function ComptesAdmin() {
           <option value="DG">DG</option>
           <option value="ADMIN">Administrateur</option>
         </select>
-        <div className="sm:col-span-4">
+        <div className="sm:col-span-5">
           {creer.isError && <p className="mb-2 text-sm text-red-600">{messageErreur(creer.error)}</p>}
           <button className="rounded bg-[#004B9C] px-4 py-2 text-sm font-semibold text-white hover:opacity-90">
             Créer le compte
@@ -184,7 +195,7 @@ function ComptesAdmin() {
         <table className="w-full rounded-lg border bg-white text-sm">
           <thead>
             <tr className="border-b bg-gray-50 text-left text-gray-500">
-              <th className="px-4 py-2">Nom</th><th className="px-4 py-2">Identifiant</th><th className="px-4 py-2">Rôle</th><th className="px-4 py-2">Statut</th><th className="px-4 py-2"></th>
+              <th className="px-4 py-2">Nom</th><th className="px-4 py-2">Identifiant</th><th className="px-4 py-2">Email</th><th className="px-4 py-2">Rôle</th><th className="px-4 py-2">Statut</th><th className="px-4 py-2"></th>
             </tr>
           </thead>
           <tbody>
@@ -192,6 +203,7 @@ function ComptesAdmin() {
               <tr key={u.id} className="border-b">
                 <td className="px-4 py-2">{u.nom}</td>
                 <td className="px-4 py-2">{u.identifiant}</td>
+                <td className="px-4 py-2">{u.email ?? "—"}</td>
                 <td className="px-4 py-2">{u.role}</td>
                 <td className="px-4 py-2">{u.actif ? "Actif" : "Désactivé"}</td>
                 <td className="px-4 py-2">

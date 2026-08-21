@@ -4,6 +4,13 @@ import { prisma } from "../../lib/prisma";
 import { genererNumeroDemande } from "../../lib/numeroDemande";
 import { consignerAudit } from "../../lib/audit";
 import { ApiError } from "../../middleware/errorHandler";
+import {
+  notifierAccuseReception,
+  notifierNouvelleDemande,
+  notifierChangementStatut,
+  notifierAlerteBudget,
+} from "../../lib/notifications";
+import { calculerUnBudgetAvecSuivi } from "../../lib/budgetCalcul";
 
 export interface LigneArticleInput {
   libelle: string;
@@ -78,6 +85,9 @@ export async function creerDemande(input: CreerDemandeInput, ip?: string) {
     auteurLibelle: input.demandeurNom,
     detail: { numero, ip },
   });
+
+  // F-09 : accusé de réception au demandeur + email aux valideurs RH/DG en attente de traitement.
+  await Promise.allSettled([notifierAccuseReception(demande), notifierNouvelleDemande(demande)]);
 
   return demande;
 }
@@ -247,6 +257,13 @@ export async function validerDemande(
     detail: { role: valideur.role },
   });
 
+  // F-09 : email au demandeur, puis alerte budgétaire (dépassement/quasi-dépassement) si applicable.
+  await notifierChangementStatut(misAJour, "VALIDEE", undefined, misAJour.lienSuiviToken);
+  if (misAJour.budgetId) {
+    const budgetSuivi = await calculerUnBudgetAvecSuivi(misAJour.budgetId);
+    if (budgetSuivi?.alerte) await notifierAlerteBudget(budgetSuivi);
+  }
+
   return misAJour;
 }
 
@@ -275,6 +292,9 @@ export async function rejeterDemande(
     auteurLibelle: valideur.nom,
     detail: { motif },
   });
+
+  // F-09 : email au demandeur, avec le motif de rejet.
+  await notifierChangementStatut(misAJour, "REJETEE", motif, misAJour.lienSuiviToken);
 
   return misAJour;
 }
@@ -309,6 +329,10 @@ export async function annulerDemande(
     auteurLibelle: acteur.nom,
     detail: motif,
   });
+
+  // F-09 : email au demandeur, avec le motif d'annulation.
+  const motifLisible = motif.commentaire ? `${motif.categorie} — ${motif.commentaire}` : motif.categorie;
+  await notifierChangementStatut(misAJour, "ANNULEE", motifLisible, misAJour.lienSuiviToken);
 
   return misAJour;
 }

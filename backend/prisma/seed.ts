@@ -12,6 +12,7 @@ async function main() {
     create: {
       nom: "Administrateur SIM ASSURANCES",
       identifiant: "admin",
+      email: "admin@sim-assurances.example",
       motDePasseHash,
       role: "ADMIN",
     },

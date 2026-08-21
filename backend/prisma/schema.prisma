@@ -37,6 +37,7 @@ model Utilisateur {
   id            String   @id @default(uuid())
   nom           String
   identifiant   String   @unique
+  email         String?  @unique
   motDePasseHash String
   role          Role
   actif         Boolean  @default(true)

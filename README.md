@@ -65,10 +65,16 @@ Réalisé (Sprint 0/1, et parties des Sprints 2 à 7) :
   lien de suivi public (`GET /api/demandes/suivi/:token/fiche.pdf`), quel que soit le statut de la
   demande. QR code de vérification d'authenticité (code HMAC dérivé du numéro et du statut, non
   falsifiable sans le secret serveur) menant à `/verification/:numero`
+- **Notifications automatiques par email (F-09)** : accusé de réception au demandeur à la
+  soumission, email aux comptes RH/DG actifs dès qu'une demande attend un traitement, email au
+  demandeur à chaque changement de statut (validée/rejetée/annulée), alerte aux RH/DG en cas de
+  quasi-dépassement ou de dépassement d'un poste budgétaire rattaché. Un échec d'envoi est
+  journalisé mais n'interrompt jamais le flux métier. Sans SMTP configuré (`SMTP_HOST` vide dans
+  `.env`), les emails sont générés et journalisés en console (`[email:dev] ...`) sans envoi réseau
+  réel — pratique par défaut pour développer sans compte SMTP. Nécessite un email par compte RH/DG
+  (champ ajouté au modèle `Utilisateur`, requis à la création dans l'espace Admin)
 
-Restant à développer (voir §7.7 et §7.9 du plan) :
-- Notifications email effectives (F-09 — actuellement consignées en audit mais non envoyées), y
-  compris l'alerte automatique de dépassement budgétaire par email
+Restant à développer (voir §7.9 du plan) :
 - Gestion multi-devises complète (F-15) — le champ existe en base, la conversion n'est pas appliquée
 - Authentification à deux facteurs, durcissement sécurité (F-16, section 10)
 - Interface d'administration des postes budgétaires (l'API existe déjà : `POST/PATCH /api/budgets`)
