@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { ChevronsLeft, ChevronsRight, LogOut } from "lucide-react";
+import { Bell, ChevronsLeft, ChevronsRight, LogOut } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import { sectionsNavigation } from "../config/navigation";
 
@@ -37,7 +37,14 @@ export function PrivateLayout() {
         <Link to="/espace/demandes" className="flex items-center">
           <img src="/logosim.webp" alt="SIM ASSURANCES" className="h-9 w-auto" />
         </Link>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            title="Notifications — à venir"
+            className="flex h-9 w-9 items-center justify-center rounded-full text-white/90 hover:bg-white/10"
+          >
+            <Bell className="h-[18px] w-[18px]" />
+          </button>
           <div className="text-right leading-tight">
             <p className="text-sm font-semibold text-white">{utilisateur.nom}</p>
             <p className="text-xs text-white/70">{LIBELLES_ROLE[utilisateur.role] ?? utilisateur.role}</p>
