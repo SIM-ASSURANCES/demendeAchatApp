@@ -53,7 +53,17 @@ export function SuiviPage() {
           <h1 className="text-2xl font-bold text-[#004B9C]">Demande {demande.numero}</h1>
           <p className="text-sm text-gray-600">Demandeur : {demande.demandeurNom}</p>
         </div>
-        <StatutBadge statut={demande.statut} />
+        <div className="flex items-center gap-3">
+          <StatutBadge statut={demande.statut} />
+          <a
+            href={`${api.defaults.baseURL}/demandes/suivi/${token}/fiche.pdf`}
+            target="_blank"
+            rel="noreferrer"
+            className="rounded border border-[#004B9C] px-3 py-1.5 text-sm font-medium text-[#004B9C] hover:bg-[#004B9C]/5"
+          >
+            Fiche officielle (PDF)
+          </a>
+        </div>
       </div>
 
       {demande.statut === "REJETEE" && demande.motifRejet && (

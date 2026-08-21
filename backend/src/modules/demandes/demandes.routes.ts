@@ -17,6 +17,8 @@ import {
   rejeterDemande,
   annulerDemande,
 } from "./demandes.service";
+import { genererFichePdf } from "./fiche.export";
+import { verifierCode } from "../../lib/verification";
 
 export const demandesRouter = Router();
 
@@ -98,6 +100,43 @@ demandesRouter.delete("/suivi/:token", async (req, res, next) => {
   }
 });
 
+// F-07 : fiche officielle PDF, accessible au demandeur via son lien de suivi personnel.
+demandesRouter.get("/suivi/:token/fiche.pdf", async (req, res, next) => {
+  try {
+    const demande = await obtenirParToken(req.params.token);
+    await genererFichePdf(res, demande);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// F-07 : vérification d'authenticité via le QR code imprimé sur la fiche — aucune authentification,
+// et aucune donnée sensible exposée au-delà de ce qui figure déjà sur le document imprimé.
+demandesRouter.get("/verifier/:numero", async (req, res, next) => {
+  try {
+    const code = String(req.query.code ?? "");
+    const demande = await prisma.demandeAchat.findUnique({
+      where: { numero: req.params.numero },
+      select: { numero: true, statut: true, montantTotal: true, valideLe: true, entite: { select: { libelle: true } } },
+    });
+
+    if (!demande || !code || !verifierCode(demande.numero, demande.statut, code)) {
+      return res.status(404).json({ valide: false, message: "Document non reconnu ou code de vérification invalide." });
+    }
+
+    res.json({
+      valide: true,
+      numero: demande.numero,
+      statut: demande.statut,
+      montantTotal: demande.montantTotal,
+      entite: demande.entite.libelle,
+      valideLe: demande.valideLe,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // F-14 : pièces jointes déposées via le lien de suivi, tant que la demande n'est pas verrouillée.
 demandesRouter.post(
   "/suivi/:token/pieces-jointes",
@@ -163,6 +202,16 @@ demandesRouter.get("/:id", authentifier, autoriser("RH", "DG", "ADMIN"), async (
   try {
     const demande = await obtenirDetail(req.params.id);
     res.json(demande);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// F-07 : fiche officielle PDF, depuis les espaces RH/DG/Admin.
+demandesRouter.get("/:id/fiche.pdf", authentifier, autoriser("RH", "DG", "ADMIN"), async (req, res, next) => {
+  try {
+    const demande = await obtenirDetail(req.params.id);
+    await genererFichePdf(res, demande);
   } catch (err) {
     next(err);
   }

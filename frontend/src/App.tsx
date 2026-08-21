@@ -7,6 +7,7 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import { PublicFormPage } from "./pages/PublicFormPage";
 import { SuiviEntryPage } from "./pages/SuiviEntryPage";
 import { SuiviPage } from "./pages/SuiviPage";
+import { VerificationPage } from "./pages/VerificationPage";
 import { LoginPage } from "./pages/LoginPage";
 import { ListePage } from "./pages/rh-dg/ListePage";
 import { DetailPage } from "./pages/rh-dg/DetailPage";
@@ -25,6 +26,7 @@ export default function App() {
               <Route path="/" element={<PublicFormPage />} />
               <Route path="/suivi" element={<SuiviEntryPage />} />
               <Route path="/suivi/:token" element={<SuiviPage />} />
+              <Route path="/verification/:numero" element={<VerificationPage />} />
               <Route path="/connexion" element={<LoginPage />} />
             </Route>
 

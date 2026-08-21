@@ -58,9 +58,15 @@ Réalisé (Sprint 0/1, et parties des Sprints 2 à 7) :
   quasi-dépassement (≥90 % du budget alloué) et de dépassement, exclusion des demandes annulées par
   défaut avec option d'inclusion à titre indicatif (RG-11), exports Excel (`exceljs`) et PDF
   (`pdfkit`) du rapport filtré
+- **Génération de la fiche officielle (F-07)** : PDF (`pdfkit`) reproduisant la mise en page de la
+  fiche papier (en-tête, tableau des articles, tableau budgétaire, quatre cases de signature dont
+  « Directeur Commercial » en case informative), avec les signatures électroniques effectivement
+  apposées ; téléchargeable depuis l'espace RH/DG (`GET /api/demandes/:id/fiche.pdf`) et depuis le
+  lien de suivi public (`GET /api/demandes/suivi/:token/fiche.pdf`), quel que soit le statut de la
+  demande. QR code de vérification d'authenticité (code HMAC dérivé du numéro et du statut, non
+  falsifiable sans le secret serveur) menant à `/verification/:numero`
 
-Restant à développer (voir §7.6, §7.7 et §7.9 du plan) :
-- Génération PDF de la fiche officielle + QR code (F-07) — distincte de l'export de rapport déjà en place
+Restant à développer (voir §7.7 et §7.9 du plan) :
 - Notifications email effectives (F-09 — actuellement consignées en audit mais non envoyées), y
   compris l'alerte automatique de dépassement budgétaire par email
 - Gestion multi-devises complète (F-15) — le champ existe en base, la conversion n'est pas appliquée

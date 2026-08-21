@@ -2,10 +2,10 @@ import ExcelJS from "exceljs";
 import PDFDocument from "pdfkit";
 import type { Response } from "express";
 import { construireTableauDeBord } from "./rapports.service";
+import { formatMontantPdf } from "../../lib/formatMontantPdf";
 
 type TableauDeBord = Awaited<ReturnType<typeof construireTableauDeBord>>;
 
-const ENTETE_XOF = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 });
 
 export async function genererClasseurExcel(tableau: TableauDeBord, sousTitre: string): Promise<ExcelJS.Buffer> {
   const classeur = new ExcelJS.Workbook();
@@ -70,20 +70,20 @@ export function genererPdfRapport(res: Response, tableau: TableauDeBord, sousTit
   const doc = new PDFDocument({ margin: 40, size: "A4" });
   doc.pipe(res);
 
-  doc.fontSize(16).fillColor("#1F3864").text("SIM ASSURANCES — Rapport des demandes d'achat validées", { align: "left" });
+  doc.fontSize(16).fillColor("#004B9C").text("SIM ASSURANCES — Rapport des demandes d'achat validées", { align: "left" });
   doc.fontSize(10).fillColor("#444444").text(sousTitre);
   doc.moveDown(0.5);
   doc.fontSize(11).fillColor("#000000");
   doc.text(`Nombre de demandes : ${tableau.nombreDemandes}`);
-  doc.text(`Montant total : ${ENTETE_XOF.format(tableau.totalGeneral)} XOF`);
+  doc.text(`Montant total : ${formatMontantPdf(tableau.totalGeneral)} XOF`);
   doc.moveDown();
 
   const tableauSection = (titre: string, lignes: { libelle: string; nombre: number; total: number }[]) => {
-    doc.fontSize(13).fillColor("#1F3864").text(titre);
+    doc.fontSize(13).fillColor("#004B9C").text(titre);
     doc.moveDown(0.3);
     doc.fontSize(10).fillColor("#000000");
     lignes.forEach((l) => {
-      doc.text(`${l.libelle}  —  ${l.nombre} demande(s)  —  ${ENTETE_XOF.format(l.total)} XOF`);
+      doc.text(`${l.libelle}  —  ${l.nombre} demande(s)  —  ${formatMontantPdf(l.total)} XOF`);
     });
     if (lignes.length === 0) doc.text("Aucune donnée pour cette sélection.");
     doc.moveDown();
@@ -92,11 +92,11 @@ export function genererPdfRapport(res: Response, tableau: TableauDeBord, sousTit
   tableauSection("Répartition par catégorie", tableau.parCategorie);
   tableauSection("Répartition par entité", tableau.parEntite);
 
-  doc.fontSize(13).fillColor("#1F3864").text("Répartition par période");
+  doc.fontSize(13).fillColor("#004B9C").text("Répartition par période");
   doc.moveDown(0.3);
   doc.fontSize(10).fillColor("#000000");
   tableau.parPeriode.forEach((l) => {
-    doc.text(`${l.periode}  —  ${l.nombre} demande(s)  —  ${ENTETE_XOF.format(l.total)} XOF`);
+    doc.text(`${l.periode}  —  ${l.nombre} demande(s)  —  ${formatMontantPdf(l.total)} XOF`);
   });
   if (tableau.parPeriode.length === 0) doc.text("Aucune donnée pour cette sélection.");
 

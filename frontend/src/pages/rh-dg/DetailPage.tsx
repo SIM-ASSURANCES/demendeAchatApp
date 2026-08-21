@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, messageErreur } from "../../lib/api";
 import { StatutBadge } from "../../components/StatutBadge";
+import { ouvrirPdfAuthentifie } from "../../lib/ouvrirFichier";
 
 interface Detail {
   id: string;
@@ -78,7 +79,15 @@ export function DetailPage() {
             {demande.demandeurNom} — {demande.demandeurEmail} {demande.demandeurTelephone ? `— ${demande.demandeurTelephone}` : ""}
           </p>
         </div>
-        <StatutBadge statut={demande.statut} />
+        <div className="flex items-center gap-3">
+          <StatutBadge statut={demande.statut} />
+          <button
+            onClick={() => ouvrirPdfAuthentifie(`/demandes/${demande.id}/fiche.pdf`)}
+            className="rounded border border-[#004B9C] px-3 py-1.5 text-sm font-medium text-[#004B9C] hover:bg-[#004B9C]/5"
+          >
+            Fiche officielle (PDF)
+          </button>
+        </div>
       </div>
 
       <section className="rounded-lg border bg-white p-5">
