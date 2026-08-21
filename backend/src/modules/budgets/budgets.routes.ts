@@ -1,32 +1,26 @@
 import { Router } from "express";
 import { z } from "zod";
-import { Devise, StatutDemande } from "@prisma/client";
+import { Devise } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
 import { authentifier, autoriser } from "../../middleware/auth.middleware";
 import { consignerAudit } from "../../lib/audit";
+import { calculerBudgetsAvecSuivi } from "../../lib/budgetCalcul";
 
 export const budgetsRouter = Router();
 
 // Consultation réservée aux espaces privés (RH/DG/Admin) — tableau Budget/Réalisé/Disponible (CDC §7.3).
-budgetsRouter.get("/", authentifier, autoriser("RH", "DG", "ADMIN"), async (req, res) => {
+budgetsRouter.get("/", authentifier, autoriser("RH", "DG", "ADMIN"), async (_req, res) => {
+  res.json(await calculerBudgetsAvecSuivi());
+});
+
+// F-01 : le formulaire public doit permettre de sélectionner le poste budgétaire concerné,
+// sans exposer les montants (alloué/réalisé/disponible), réservés aux espaces privés.
+budgetsRouter.get("/postes", async (_req, res) => {
   const budgets = await prisma.budget.findMany({
-    include: { entite: true, categorie: true },
-    orderBy: { periodeDebut: "desc" },
+    select: { id: true, poste: true, entiteId: true, categorieId: true, periodeDebut: true, periodeFin: true },
+    orderBy: { poste: "asc" },
   });
-
-  const budgetsAvecRealise = await Promise.all(
-    budgets.map(async (budget) => {
-      const agregat = await prisma.demandeAchat.aggregate({
-        where: { budgetId: budget.id, statut: StatutDemande.VALIDEE },
-        _sum: { montantTotal: true },
-      });
-      const realise = agregat._sum.montantTotal ?? 0;
-      const disponible = Number(budget.montantAlloue) - Number(realise);
-      return { ...budget, realise, disponible };
-    })
-  );
-
-  res.json(budgetsAvecRealise);
+  res.json(budgets);
 });
 
 const budgetSchema = z.object({

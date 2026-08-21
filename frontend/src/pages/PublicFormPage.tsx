@@ -19,6 +19,10 @@ const formSchema = z.object({
   demandeurTelephone: z.string().optional(),
   entiteId: z.string().min(1, "Entité requise"),
   categorieId: z.string().min(1, "Catégorie requise"),
+  budgetId: z
+    .string()
+    .optional()
+    .transform((v) => (v ? v : undefined)),
   motif: z.string().min(1, "Motif requis"),
   dateLivraisonSouhaitee: z.string().min(1, "Date requise"),
   lignes: z.array(ligneSchema).min(1, "Ajoutez au moins un article"),
@@ -32,6 +36,13 @@ interface Reference {
   libelle: string;
 }
 
+interface PosteBudgetaire {
+  id: string;
+  poste: string;
+  entiteId: string;
+  categorieId: string;
+}
+
 export function PublicFormPage() {
   const [resultat, setResultat] = useState<{ numero: string; lienSuiviToken: string } | null>(null);
 
@@ -42,6 +53,10 @@ export function PublicFormPage() {
   const categories = useQuery({
     queryKey: ["categories"],
     queryFn: async () => (await api.get<Reference[]>("/categories")).data,
+  });
+  const postesBudgetaires = useQuery({
+    queryKey: ["budgets-postes"],
+    queryFn: async () => (await api.get<PosteBudgetaire[]>("/budgets/postes")).data,
   });
 
   const {
@@ -57,9 +72,16 @@ export function PublicFormPage() {
 
   const { fields, append, remove } = useFieldArray({ control, name: "lignes" });
   const lignes = watch("lignes");
+  const entiteChoisie = watch("entiteId");
+  const categorieChoisie = watch("categorieId");
   const totalGeneral = (lignes ?? []).reduce(
     (somme, l) => somme + (Number(l?.quantite) || 0) * (Number(l?.prixUnitaire) || 0),
     0
+  );
+
+  // Ne proposer que les postes budgétaires cohérents avec l'entité et la catégorie déjà choisies.
+  const postesEligibles = (postesBudgetaires.data ?? []).filter(
+    (p) => (!entiteChoisie || p.entiteId === entiteChoisie) && (!categorieChoisie || p.categorieId === categorieChoisie)
   );
 
   const soumission = useMutation({
@@ -139,6 +161,14 @@ export function PublicFormPage() {
           </Champ>
           <Champ label="Date de livraison souhaitée" erreur={errors.dateLivraisonSouhaitee?.message}>
             <input className="champ" type="date" {...register("dateLivraisonSouhaitee")} />
+          </Champ>
+          <Champ label="Poste budgétaire concerné (facultatif)">
+            <select className="champ" {...register("budgetId")}>
+              <option value="">Aucun / non déterminé</option>
+              {postesEligibles.map((p) => (
+                <option key={p.id} value={p.id}>{p.poste}</option>
+              ))}
+            </select>
           </Champ>
         </div>
         <Champ label="Motif de l'achat" erreur={errors.motif?.message}>

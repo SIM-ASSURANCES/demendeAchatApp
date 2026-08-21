@@ -23,10 +23,16 @@ export function Layout() {
             {utilisateur ? (
               <>
                 {(utilisateur.role === "RH" || utilisateur.role === "DG") && (
-                  <Link to="/espace/demandes" className="hover:underline">Espace {utilisateur.role}</Link>
+                  <>
+                    <Link to="/espace/demandes" className="hover:underline">Espace {utilisateur.role}</Link>
+                    <Link to="/espace/rapports" className="hover:underline">Rapports</Link>
+                  </>
                 )}
                 {utilisateur.role === "ADMIN" && (
-                  <Link to="/admin" className="hover:underline">Administration</Link>
+                  <>
+                    <Link to="/espace/rapports" className="hover:underline">Rapports</Link>
+                    <Link to="/admin" className="hover:underline">Administration</Link>
+                  </>
                 )}
                 <span className="text-white/70">{utilisateur.nom}</span>
                 <button onClick={handleDeconnexion} className="rounded bg-white/10 px-3 py-1 hover:bg-white/20">

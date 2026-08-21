@@ -10,6 +10,7 @@ import { categoriesRouter } from "./modules/categories/categories.routes";
 import { entitesRouter } from "./modules/entites/entites.routes";
 import { budgetsRouter } from "./modules/budgets/budgets.routes";
 import { usersRouter } from "./modules/users/users.routes";
+import { rapportsRouter } from "./modules/rapports/rapports.routes";
 
 export const app = express();
 
@@ -27,5 +28,6 @@ app.use("/api/categories", categoriesRouter);
 app.use("/api/entites", entitesRouter);
 app.use("/api/budgets", budgetsRouter);
 app.use("/api/utilisateurs", usersRouter);
+app.use("/api/rapports", rapportsRouter);
 
 app.use(errorHandler);

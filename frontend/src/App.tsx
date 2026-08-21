@@ -9,6 +9,7 @@ import { SuiviPage } from "./pages/SuiviPage";
 import { LoginPage } from "./pages/LoginPage";
 import { ListePage } from "./pages/rh-dg/ListePage";
 import { DetailPage } from "./pages/rh-dg/DetailPage";
+import { RapportsPage } from "./pages/rh-dg/RapportsPage";
 import { AdminPage } from "./pages/admin/AdminPage";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ export default function App() {
               <Route element={<ProtectedRoute rolesAutorises={["RH", "DG", "ADMIN"]} />}>
                 <Route path="/espace/demandes" element={<ListePage />} />
                 <Route path="/espace/demandes/:id" element={<DetailPage />} />
+                <Route path="/espace/rapports" element={<RapportsPage />} />
               </Route>
 
               <Route element={<ProtectedRoute rolesAutorises={["ADMIN"]} />}>
